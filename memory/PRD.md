@@ -27,6 +27,18 @@ Build an enterprise operational assessment system to evaluate whether AI initiat
 7. No auth in MVP; session resume via URL
 
 ## What's Been Implemented (Jan 2026)
+
+### Code Quality Pass (added Jan 2026)
+- ✅ Production-aware logger (`/app/frontend/src/lib/logger.js`) — `console.*` only fires in dev builds
+- ✅ All `console.error` calls in Intake/Assessment/Report replaced with `log.error`
+- ✅ All `key={i}` index-as-key usages replaced with stable composite keys
+- ✅ Assessment.jsx `dimensions` wrapped in useMemo (eliminated last react-hooks/exhaustive-deps warning — build now has 0 warnings)
+- ✅ scoring_engine.score_assessment() decomposed into testable helpers (_score_indicator / _score_sub_dimension / _score_dimension / _compute_domain_score / _compute_confidence / _apply_blocker_overrides / _classify_strengths_risks) — bit-identical outputs verified
+- ✅ reasoning_service.py extracted shared `_strip_code_fences()` and `_call_llm_for_json(required_keys=…)` helper — generate_reasoning + generate_executive_abstract both go through it
+- ✅ Report.jsx (374→225 LOC) and SharedBriefing.jsx (307→162 LOC) refactored to share `ReportHeader`, `ScoreHero`, `InitiativeSummary`, `DimensionBreakdownSection`, `BlockersSection`, `StrengthsRisksSection`, `RemediationSection` — ~50% LOC reduction, zero visual or behavioral change
+- ✅ Lint clean: ruff (Python) + ESLint (JS/JSX) both fully green
+- ✅ 25/25 backend regression suite still passing post-refactor
+
 - ✅ Versioned ontology JSON (5 dimensions, 27 evidence indicators, 5 blockers)
 - ✅ Deterministic scoring engine with weighted aggregation, confidence derivation, blocker override logic
 - ✅ Claude Sonnet 4.5 reasoning service with structured JSON output + schema validation + deterministic fallback
