@@ -42,12 +42,14 @@ Build an enterprise operational assessment system to evaluate whether AI initiat
 
 ### Share Briefing Feature (added Jan 2026)
 - ✅ `POST /api/assessments/:id/share` — generates tokenized read-only link (idempotent; reuses existing active link)
+- ✅ `GET /api/assessments/:id/share` — passive telemetry read; returns minimal metadata + view_count + last_viewed_at; no side effects; 404 if no active link
 - ✅ `GET /api/shared/:token` — public, no-auth retrieval; tracks `view_count` and `last_viewed_at`
 - ✅ Claude-generated boardroom-grade executive abstract (2-4 sentences) cached on share-link record
 - ✅ Forward-compatible expiration architecture (`expires_in_days` request field, `expires_at` persisted; default null in MVP)
 - ✅ Forward-compatible revocation fields (`is_active`, `revoked_at`) ready for future revoke endpoint
 - ✅ ShareBriefingDialog with copy-to-clipboard, view-count display, expiration metadata
 - ✅ Dedicated `/shared/:token` SharedBriefing page — boardroom aesthetic, executive abstract as lead element, NO editing/navigation chrome, "CONFIDENTIAL" eyebrow, Print button, fully print-friendly
+- ✅ Restrained engagement telemetry line on `/report/:id` — "Viewed N times · Last opened DATE" eyebrow-style, no-print, right-aligned, only renders when view_count ≥ 1
 - ✅ Graceful 404 ("Unavailable") for invalid/orphaned tokens
 
 ## Tech Stack
