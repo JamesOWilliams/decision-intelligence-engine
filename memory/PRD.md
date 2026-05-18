@@ -28,6 +28,16 @@ Build an enterprise operational assessment system to evaluate whether AI initiat
 
 ## What's Been Implemented (Jan 2026)
 
+### Pre-Publish Hardening (added Jan 2026)
+- ✅ `.gitignore` hardened: `.env*`, `.ruff_cache/`, `.pytest_cache/`, `test_reports/` excluded
+- ✅ Stray files removed: `/app/test_result.md`, `/app/yarn.lock` (orphan), `/app/tests/` (empty)
+- ✅ `frontend/yarn.lock` will be tracked (520 KB — reproducible installs)
+- ✅ `/api/shared/:token` strips `report.id` and `report.assessment_id` — prevents transit-ID leakage to share recipients
+- ✅ MongoDB indexes created idempotently at startup via `ensure_indexes()`: `assessments.id` (unique), `reports.assessment_id`, `share_links.token` (unique), `share_links.assessment_id + is_active`
+- ✅ Standalone ops script: `backend/scripts/create_indexes.py` for explicit deployment/migration runs
+- ✅ README expanded with: Environment Variables, Security Posture (MVP no-auth caveat), Deployment Notes, Roadmap (Phase 1–4)
+- ✅ 25/25 backend regression suite + zero-warning frontend build verified post-hardening
+
 ### Code Quality Pass (added Jan 2026)
 - ✅ Production-aware logger (`/app/frontend/src/lib/logger.js`) — `console.*` only fires in dev builds
 - ✅ All `console.error` calls in Intake/Assessment/Report replaced with `log.error`

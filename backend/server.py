@@ -315,6 +315,11 @@ async def get_shared_briefing(token: str):
     if not report:
         raise HTTPException(status_code=404, detail="Underlying report no longer exists")
 
+    # Strip transit identifiers (report.id, report.assessment_id) to prevent
+    # the shared briefing from exposing originating-assessment handles.
+    # Shared consumers only need the briefing content — not the underlying handles.
+    sanitized_report = {k: v for k, v in report.items() if k not in ("id", "assessment_id")}
+
     # Increment view count (best-effort)
     await db.share_links.update_one(
         {"token": token},
@@ -326,7 +331,7 @@ async def get_shared_briefing(token: str):
         "executive_abstract": link.get("executive_abstract"),
         "shared_at": link["created_at"],
         "expires_at": link.get("expires_at"),
-        "report": report,
+        "report": sanitized_report,
     }
 
 
@@ -346,6 +351,25 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+
+@app.on_event("startup")
+async def ensure_indexes():
+    """
+    Idempotently create production indexes. MongoDB `create_index` is a no-op
+    if an equivalent index already exists, so this is safe to run on every boot.
+    """
+    try:
+        await db.assessments.create_index("id", unique=True, name="assessments_id_unique")
+        await db.reports.create_index("assessment_id", name="reports_assessment_id")
+        await db.share_links.create_index("token", unique=True, name="share_links_token_unique")
+        await db.share_links.create_index(
+            [("assessment_id", 1), ("is_active", 1)],
+            name="share_links_assessment_id_is_active",
+        )
+        logger.info("MongoDB indexes verified.")
+    except Exception as e:  # noqa: BLE001 — non-fatal; app continues without the index
+        logger.warning("Index creation skipped (%s). App will still function.", e)
 
 
 @app.on_event("shutdown")

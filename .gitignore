@@ -80,6 +80,11 @@ agenthub/agents/youtube/db
 
 # Build caches
 .cache/
+.ruff_cache/
+.pytest_cache/
+
+# Test run history (testing-agent artifacts; comment out to track)
+test_reports/
 
 memory/test_credentials.md
 

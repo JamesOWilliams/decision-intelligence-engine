@@ -240,6 +240,119 @@ See `design_guidelines.json` for the full token specification.
 
 ---
 
+## ✦ Environment Variables
+
+| Name                    | Scope    | Required | Description                                                                          |
+|-------------------------|----------|----------|--------------------------------------------------------------------------------------|
+| `MONGO_URL`             | Backend  | Yes      | MongoDB connection string (e.g. `mongodb://localhost:27017`)                         |
+| `DB_NAME`               | Backend  | Yes      | MongoDB database name                                                                |
+| `CORS_ORIGINS`          | Backend  | No       | Comma-separated allowed origins. Defaults to `*`. **Set explicit origins in prod**.  |
+| `EMERGENT_LLM_KEY`      | Backend  | No       | Emergent Universal LLM key (or Anthropic key). If unset, narrative falls back to deterministic template. |
+| `REACT_APP_BACKEND_URL` | Frontend | Yes      | Public URL of the FastAPI backend (e.g. `https://api.example.com`)                   |
+| `GENERATE_SOURCEMAP`    | Frontend | No       | Set to `false` for production builds to suppress source map output                   |
+
+Backend env lives in `backend/.env`; frontend env lives in `frontend/.env`. Both files are
+git-ignored. A `.env.example` may be added to `backend/` if needed for collaborators.
+
+---
+
+## ✦ Security Posture (MVP)
+
+This MVP is **intentionally unauthenticated** by product decision (see PRD). Read carefully
+before any public production deployment.
+
+### What is safe
+- **No secrets in client bundle.** The frontend only knows `REACT_APP_BACKEND_URL`.
+- **LLM API key** is server-side only and never appears in responses or logs.
+- **Share tokens** use `secrets.token_urlsafe(32)` → ~256 bits of entropy. Brute-force enumeration is computationally infeasible.
+- **Shared route is strictly read-only.** Only `GET /api/shared/:token` is reachable without an internal handle; it performs only `$inc view_count` as a side effect.
+- **Transit IDs are stripped** from the `/api/shared/:token` response — recipients of a share link cannot derive the originating `assessment_id` or `report.id`.
+- **No `dangerouslySetInnerHTML`** anywhere in the React tree; user-supplied initiative text is rendered as escaped text.
+- **`.env` files** are explicitly excluded from git.
+
+### What requires hardening before public production launch
+- 🟡 **All `/api/assessments/:id/*` routes are unauthenticated.** Anyone with an assessment UUID can read, mutate, or regenerate the report. UUIDs are unguessable but logs/screen-shares are not. Add an auth gate before public deployment.
+- 🟡 **`CORS_ORIGINS="*"` with `allow_credentials=True`** is permissive. Set explicit origins per environment.
+- 🟡 **No rate limiting.** Add `slowapi` (or platform-level rate limits) on `/api/assessments/:id/report`, `/api/assessments/:id/share`, and `/api/shared/:token` before opening to the public.
+- 🟡 **`POST /api/assessments/seed-demo`** is publicly callable. Gate behind an admin token (or remove) in production.
+- 🟢 **Prompt-injection** via initiative free-text cannot alter scoring (deterministic) — worst case is degraded narrative quality. Acceptable for MVP.
+
+### Data persisted
+- `assessments` — initiative profile + evidence + metadata
+- `reports` — scoring snapshot + LLM narrative
+- `share_links` — token + executive abstract + view telemetry (`view_count`, `last_viewed_at`)
+
+No user identities, no IP addresses, no PII are collected by design.
+
+---
+
+## ✦ Deployment Notes
+
+### Pre-deploy checklist
+1. Set `MONGO_URL`, `DB_NAME`, `EMERGENT_LLM_KEY`, `CORS_ORIGINS` (explicit origins, no `*`).
+2. Set `REACT_APP_BACKEND_URL` to the production ingress.
+3. Run `python backend/scripts/create_indexes.py` against the production database
+   *(also runs idempotently at backend startup via `ensure_indexes`)*.
+4. Disable the seed-demo route or gate it (see Security Posture).
+5. Add rate limiting (recommended: `slowapi`) on share + report endpoints.
+6. Disable source maps: `GENERATE_SOURCEMAP=false yarn build`.
+
+### Runtime assumptions
+- Python 3.11+, Node 18+, MongoDB 4.4+
+- Backend memory ≤ 256 MB steady state; spikes during LLM I/O
+- Cold-start latency on `/api/assessments/:id/report` is 4–8 s (single Claude call)
+- Claude budget should be sized for ~1 narrative + ~1 abstract call per assessment
+
+### MongoDB indexes
+The following indexes are created idempotently at backend startup and can also be
+created manually via `python backend/scripts/create_indexes.py`:
+
+| Collection    | Key(s)                              | Unique | Purpose                                 |
+|---------------|-------------------------------------|--------|-----------------------------------------|
+| `assessments` | `id`                                | ✓      | Fast assessment retrieval               |
+| `reports`     | `assessment_id`                     |        | Report lookup by assessment             |
+| `share_links` | `token`                             | ✓      | Public share resolution                 |
+| `share_links` | `assessment_id` + `is_active`       |        | Idempotent share creation               |
+
+### Backup recommendations
+- Daily snapshot of `assessments`, `reports`, `share_links`
+- Retention: 30 days for MVP; revisit for production
+- Restore drill: weekly during the first month post-deploy
+
+### Health monitoring
+- Liveness probe: `GET /api/health` → expects 200 + `{ "status": "ok" }`
+- LLM budget: monitor `EMERGENT_LLM_KEY` consumption on the Emergent dashboard
+
+---
+
+## ✦ Roadmap
+
+### Phase 1 (current — Organizational Readiness MVP) ✅
+- Five-dimension organizational readiness ontology
+- Deterministic scoring + Claude reasoning
+- Tokenized executive briefing sharing
+- Print-friendly executive report
+
+### Phase 2 — Expand the Decision Surface
+- Additional readiness domains: Strategic, Data, Technical, Governance, Operational Sustainability
+- Multi-domain weighted roll-up score
+- `/api/score/preview` — non-persisted what-if scoring service
+- Per-indicator weighting UI
+
+### Phase 3 — Evidence Layer
+- Document ingestion (policies, runbooks, kickoff decks)
+- RAG-retrieved evidence with provenance
+- Suggested maturity ratings derived from document content (still confirmed by user)
+
+### Phase 4 — Portfolio & Lifecycle
+- Multi-assessment dashboard for AI initiative portfolios
+- Trend tracking across re-assessments over time
+- Workflow orchestration with human approval chains
+- Enterprise IAM integration (SSO, role-based access)
+- Briefing revocation + signed link expiration enforcement
+
+---
+
 ## ✦ Status (MVP baseline)
 
 - ✅ Scoring engine (deterministic) — bit-identical outputs verified
