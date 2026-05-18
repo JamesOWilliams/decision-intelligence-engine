@@ -2,81 +2,55 @@
 module.exports = {
     darkMode: ["class"],
     content: [
-    "./src/**/*.{js,jsx,ts,tsx}",
-    "./public/index.html"
-  ],
-  theme: {
-  	extend: {
-  		borderRadius: {
-  			lg: 'var(--radius)',
-  			md: 'calc(var(--radius) - 2px)',
-  			sm: 'calc(var(--radius) - 4px)'
-  		},
-  		colors: {
-  			background: 'hsl(var(--background))',
-  			foreground: 'hsl(var(--foreground))',
-  			card: {
-  				DEFAULT: 'hsl(var(--card))',
-  				foreground: 'hsl(var(--card-foreground))'
-  			},
-  			popover: {
-  				DEFAULT: 'hsl(var(--popover))',
-  				foreground: 'hsl(var(--popover-foreground))'
-  			},
-  			primary: {
-  				DEFAULT: 'hsl(var(--primary))',
-  				foreground: 'hsl(var(--primary-foreground))'
-  			},
-  			secondary: {
-  				DEFAULT: 'hsl(var(--secondary))',
-  				foreground: 'hsl(var(--secondary-foreground))'
-  			},
-  			muted: {
-  				DEFAULT: 'hsl(var(--muted))',
-  				foreground: 'hsl(var(--muted-foreground))'
-  			},
-  			accent: {
-  				DEFAULT: 'hsl(var(--accent))',
-  				foreground: 'hsl(var(--accent-foreground))'
-  			},
-  			destructive: {
-  				DEFAULT: 'hsl(var(--destructive))',
-  				foreground: 'hsl(var(--destructive-foreground))'
-  			},
-  			border: 'hsl(var(--border))',
-  			input: 'hsl(var(--input))',
-  			ring: 'hsl(var(--ring))',
-  			chart: {
-  				'1': 'hsl(var(--chart-1))',
-  				'2': 'hsl(var(--chart-2))',
-  				'3': 'hsl(var(--chart-3))',
-  				'4': 'hsl(var(--chart-4))',
-  				'5': 'hsl(var(--chart-5))'
-  			}
-  		},
-  		keyframes: {
-  			'accordion-down': {
-  				from: {
-  					height: '0'
-  				},
-  				to: {
-  					height: 'var(--radix-accordion-content-height)'
-  				}
-  			},
-  			'accordion-up': {
-  				from: {
-  					height: 'var(--radix-accordion-content-height)'
-  				},
-  				to: {
-  					height: '0'
-  				}
-  			}
-  		},
-  		animation: {
-  			'accordion-down': 'accordion-down 0.2s ease-out',
-  			'accordion-up': 'accordion-up 0.2s ease-out'
-  		}
-  	}
-  },
-  plugins: [require("tailwindcss-animate")],
+        "./src/**/*.{js,jsx,ts,tsx}",
+        "./public/index.html"
+    ],
+    theme: {
+        extend: {
+            fontFamily: {
+                heading: ['Newsreader', 'serif'],
+                body: ['"IBM Plex Sans"', 'sans-serif'],
+                mono: ['"IBM Plex Mono"', 'monospace'],
+            },
+            colors: {
+                bone: '#F4F4F0',
+                surface: '#FFFFFF',
+                sunken: '#EBEBE6',
+                ink: '#0A0A0A',
+                graphite: '#525252',
+                slate2: '#737373',
+                hairline: '#E5E5DF',
+                oxblood: '#7F1D1D',
+                moss: '#2E5C31',
+                amber2: '#B45309',
+                // shadcn passthrough (kept for any radix components that need it)
+                background: '#F4F4F0',
+                foreground: '#0A0A0A',
+                border: '#E5E5DF',
+                input: '#E5E5DF',
+                ring: '#0A0A0A',
+                primary: { DEFAULT: '#0A0A0A', foreground: '#FFFFFF' },
+                secondary: { DEFAULT: '#EBEBE6', foreground: '#0A0A0A' },
+                muted: { DEFAULT: '#EBEBE6', foreground: '#525252' },
+                accent: { DEFAULT: '#7F1D1D', foreground: '#FFFFFF' },
+                destructive: { DEFAULT: '#7F1D1D', foreground: '#FFFFFF' },
+                card: { DEFAULT: '#FFFFFF', foreground: '#0A0A0A' },
+                popover: { DEFAULT: '#FFFFFF', foreground: '#0A0A0A' },
+            },
+            borderRadius: {
+                lg: '0px',
+                md: '0px',
+                sm: '0px',
+            },
+            keyframes: {
+                'fade-in': { from: { opacity: '0', transform: 'translateY(4px)' }, to: { opacity: '1', transform: 'translateY(0)' } },
+                'bar-grow': { from: { width: '0%' }, to: { width: 'var(--bar-w)' } },
+            },
+            animation: {
+                'fade-in': 'fade-in 400ms ease-out both',
+                'bar-grow': 'bar-grow 700ms cubic-bezier(0.16, 1, 0.3, 1) both',
+            },
+        }
+    },
+    plugins: [require("tailwindcss-animate")],
 };

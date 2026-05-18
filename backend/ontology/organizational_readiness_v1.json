@@ -1,0 +1,432 @@
+{
+  "version": "1.0.0",
+  "domain": {
+    "id": "organizational_readiness",
+    "name": "Organizational Readiness",
+    "core_question": "Can the organization realistically execute and absorb this AI initiative operationally?",
+    "operational_definition": "Evaluates the organization's ability to operationalize, absorb, support, and sustain AI-driven workflow or process transformation.",
+    "dimensions": [
+      {
+        "id": "change_management",
+        "name": "Change Management Maturity",
+        "weight": 0.25,
+        "operational_definition": "Organization's demonstrated ability to manage workflow and process transformation through structured communication, rollout planning, governance, training, adoption tracking, and organizational support mechanisms.",
+        "sub_dimensions": [
+          {
+            "id": "rollout_planning",
+            "name": "Rollout Planning",
+            "indicators": [
+              {
+                "id": "rollout_plan_documented",
+                "label": "Formal rollout plan documented",
+                "help_text": "A written plan covering sequencing, milestones, dependencies, and target rollout cohorts.",
+                "weight": 1.0
+              },
+              {
+                "id": "transformation_playbook",
+                "label": "Prior transformation playbook referenced",
+                "help_text": "An organizational playbook from previous initiatives is being leveraged for this rollout.",
+                "weight": 1.0
+              }
+            ]
+          },
+          {
+            "id": "communication_strategy",
+            "name": "Communication Strategy",
+            "indicators": [
+              {
+                "id": "executive_communication_strategy",
+                "label": "Executive communication strategy defined",
+                "help_text": "Cadence, channels, and key messages for executive-level communication during rollout.",
+                "weight": 1.0
+              }
+            ]
+          },
+          {
+            "id": "adoption_management",
+            "name": "Adoption Management",
+            "indicators": [
+              {
+                "id": "adoption_kpis_defined",
+                "label": "Adoption KPIs identified",
+                "help_text": "Quantifiable adoption measures (e.g., active users, task completion, behavior change) are documented.",
+                "weight": 1.0
+              },
+              {
+                "id": "change_champion_network",
+                "label": "Change champion network established",
+                "help_text": "A distributed network of advocates across business units is identified and activated.",
+                "weight": 1.0
+              }
+            ]
+          },
+          {
+            "id": "governance_cadence",
+            "name": "Governance Cadence",
+            "indicators": [
+              {
+                "id": "governance_cadence_established",
+                "label": "Governance review cadence established",
+                "help_text": "Recurring governance reviews are scheduled with accountable executives and decision rights defined.",
+                "weight": 1.0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "stakeholder_alignment",
+        "name": "Stakeholder Alignment",
+        "weight": 0.20,
+        "operational_definition": "Degree of alignment across business, technology, governance, operations, and executive stakeholders regarding initiative objectives, ownership, expected outcomes, and rollout strategy.",
+        "sub_dimensions": [
+          {
+            "id": "executive_alignment",
+            "name": "Executive Alignment",
+            "indicators": [
+              {
+                "id": "executive_sponsor_identified",
+                "label": "Executive sponsor identified",
+                "help_text": "A named, accountable executive sponsor with sufficient authority and engagement.",
+                "weight": 1.0
+              }
+            ]
+          },
+          {
+            "id": "business_alignment",
+            "name": "Business Alignment",
+            "indicators": [
+              {
+                "id": "business_owner_engaged",
+                "label": "Business owner engaged on outcomes",
+                "help_text": "Business owner is actively engaged on outcomes, scope, and trade-offs (distinct from formal ownership assignment).",
+                "weight": 1.0
+              },
+              {
+                "id": "cross_functional_kickoff",
+                "label": "Cross-functional kickoff completed",
+                "help_text": "A formal kickoff involving business, technology, governance, and operations has occurred.",
+                "weight": 1.0
+              }
+            ]
+          },
+          {
+            "id": "technical_alignment",
+            "name": "Technical Alignment",
+            "indicators": [
+              {
+                "id": "engineering_teams_engaged",
+                "label": "Engineering / platform teams engaged",
+                "help_text": "Engineering dependencies are acknowledged and platform teams are formally engaged.",
+                "weight": 1.0
+              }
+            ]
+          },
+          {
+            "id": "governance_alignment",
+            "name": "Governance Alignment",
+            "indicators": [
+              {
+                "id": "governance_legal_engaged",
+                "label": "Governance / risk / legal engaged",
+                "help_text": "Governance, risk, and legal stakeholders are formally engaged in scope and review.",
+                "weight": 1.0
+              }
+            ]
+          },
+          {
+            "id": "success_criteria_alignment",
+            "name": "Success Criteria Alignment",
+            "indicators": [
+              {
+                "id": "success_metrics_documented",
+                "label": "Success metrics documented and agreed",
+                "help_text": "A documented, agreed-upon set of success metrics exists across stakeholder groups.",
+                "weight": 1.0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "operational_ownership",
+        "name": "Operational Ownership Clarity",
+        "weight": 0.25,
+        "operational_definition": "Clarity regarding long-term ownership, accountability, escalation responsibility, operational support, and lifecycle management for the AI initiative.",
+        "sub_dimensions": [
+          {
+            "id": "business_ownership",
+            "name": "Business Ownership",
+            "indicators": [
+              {
+                "id": "business_owner_assigned",
+                "label": "Business owner formally assigned",
+                "help_text": "A named business owner is formally accountable for the initiative's operational outcomes.",
+                "weight": 1.0
+              }
+            ]
+          },
+          {
+            "id": "technical_ownership",
+            "name": "Technical Ownership",
+            "indicators": [
+              {
+                "id": "technical_owner_assigned",
+                "label": "Technical owner formally assigned",
+                "help_text": "A named technical owner is formally accountable for the platform, model, and integrations.",
+                "weight": 1.0
+              }
+            ]
+          },
+          {
+            "id": "escalation_ownership",
+            "name": "Escalation Ownership",
+            "indicators": [
+              {
+                "id": "escalation_workflow_documented",
+                "label": "Escalation workflow documented",
+                "help_text": "Clear escalation paths, response time expectations, and decision rights are documented.",
+                "weight": 1.0
+              }
+            ]
+          },
+          {
+            "id": "support_ownership",
+            "name": "Support Ownership",
+            "indicators": [
+              {
+                "id": "support_model_defined",
+                "label": "Operational support model defined",
+                "help_text": "Tiered support model (L1/L2/L3), staffing, and SLAs are defined.",
+                "weight": 1.0
+              }
+            ]
+          },
+          {
+            "id": "lifecycle_governance",
+            "name": "Lifecycle Governance",
+            "indicators": [
+              {
+                "id": "lifecycle_review_cadence",
+                "label": "Post-launch lifecycle review cadence",
+                "help_text": "Recurring post-launch reviews assess performance, drift, and retirement criteria.",
+                "weight": 1.0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "cross_functional_coordination",
+        "name": "Cross-Functional Coordination",
+        "weight": 0.20,
+        "operational_definition": "Organization's ability to coordinate execution, dependencies, communication, sequencing, and operational collaboration across multiple teams and business functions.",
+        "sub_dimensions": [
+          {
+            "id": "dependency_awareness",
+            "name": "Dependency Awareness",
+            "indicators": [
+              {
+                "id": "dependency_mapping_completed",
+                "label": "Dependency mapping completed",
+                "help_text": "Upstream and downstream dependencies have been formally mapped.",
+                "weight": 1.0
+              }
+            ]
+          },
+          {
+            "id": "coordination_cadence",
+            "name": "Coordination Cadence",
+            "indicators": [
+              {
+                "id": "cross_functional_cadence",
+                "label": "Cross-functional governance cadence exists",
+                "help_text": "Recurring cross-functional working sessions are scheduled and attended.",
+                "weight": 1.0
+              }
+            ]
+          },
+          {
+            "id": "delivery_sequencing",
+            "name": "Delivery Sequencing",
+            "indicators": [
+              {
+                "id": "delivery_sequencing_documented",
+                "label": "Delivery sequencing documented",
+                "help_text": "Sequencing of deliverables, integration points, and gating criteria is documented.",
+                "weight": 1.0
+              }
+            ]
+          },
+          {
+            "id": "workflow_integration",
+            "name": "Workflow Integration",
+            "indicators": [
+              {
+                "id": "workflow_impacts_documented",
+                "label": "Downstream workflow impacts documented",
+                "help_text": "Operational workflow changes and their impacts on existing processes are documented.",
+                "weight": 1.0
+              }
+            ]
+          },
+          {
+            "id": "escalation_coordination",
+            "name": "Escalation Coordination",
+            "indicators": [
+              {
+                "id": "escalation_coordination_defined",
+                "label": "Cross-team escalation coordination defined",
+                "help_text": "Process for coordinating escalations across teams is defined and rehearsed.",
+                "weight": 1.0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "training_enablement",
+        "name": "Training & Enablement Readiness",
+        "weight": 0.10,
+        "operational_definition": "Organization's preparedness to train, support, onboard, and operationally enable users impacted by the AI initiative.",
+        "sub_dimensions": [
+          {
+            "id": "user_training_strategy",
+            "name": "User Training Strategy",
+            "indicators": [
+              {
+                "id": "training_plan_documented",
+                "label": "User training plan documented",
+                "help_text": "A documented training plan for impacted users covering modality, sequencing, and reinforcement.",
+                "weight": 1.0
+              }
+            ]
+          },
+          {
+            "id": "documentation_readiness",
+            "name": "Documentation Readiness",
+            "indicators": [
+              {
+                "id": "operational_documentation_prepared",
+                "label": "Operational documentation prepared",
+                "help_text": "User guides, FAQs, and operational runbooks are prepared and reviewed.",
+                "weight": 1.0
+              }
+            ]
+          },
+          {
+            "id": "support_readiness",
+            "name": "Support Readiness",
+            "indicators": [
+              {
+                "id": "support_resources_allocated",
+                "label": "Support resources allocated",
+                "help_text": "Dedicated support staff, tooling, and queues are allocated for the rollout.",
+                "weight": 1.0
+              }
+            ]
+          },
+          {
+            "id": "user_feedback_mechanisms",
+            "name": "User Feedback Mechanisms",
+            "indicators": [
+              {
+                "id": "user_feedback_process",
+                "label": "User feedback process identified",
+                "help_text": "A mechanism for capturing, triaging, and acting on user feedback exists.",
+                "weight": 1.0
+              }
+            ]
+          },
+          {
+            "id": "adoption_reinforcement",
+            "name": "Adoption Reinforcement",
+            "indicators": [
+              {
+                "id": "adoption_reinforcement_plan",
+                "label": "Adoption reinforcement plan established",
+                "help_text": "Ongoing reinforcement activities (refresher training, nudges, champions) are planned.",
+                "weight": 1.0
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "maturity_scale": {
+    "not_started":     { "score": 0, "label": "Not Started",     "short": "NS" },
+    "informal":        { "score": 1, "label": "Informal",        "short": "IN" },
+    "drafted":         { "score": 2, "label": "Drafted",         "short": "DR" },
+    "approved":        { "score": 3, "label": "Approved",        "short": "AP" },
+    "operationalized": { "score": 4, "label": "Operationalized", "short": "OP" }
+  },
+  "maturity_bands": [
+    { "min": 0,  "max": 24,  "band": "Minimal" },
+    { "min": 25, "max": 49,  "band": "Emerging" },
+    { "min": 50, "max": 69,  "band": "Developing" },
+    { "min": 70, "max": 84,  "band": "Structured" },
+    { "min": 85, "max": 100, "band": "Institutionalized" }
+  ],
+  "recommendation_tiers": [
+    { "min": 85, "max": 100, "tier": "Production Candidate" },
+    { "min": 70, "max": 84,  "tier": "Proceed to Constrained Pilot" },
+    { "min": 50, "max": 69,  "tier": "Remediate Before Expansion" },
+    { "min": 25, "max": 49,  "tier": "Discovery Only" },
+    { "min": 0,  "max": 24,  "tier": "Not Ready" }
+  ],
+  "tier_rank": {
+    "Not Ready": 0,
+    "Discovery Only": 1,
+    "Remediate Before Expansion": 2,
+    "Proceed to Constrained Pilot": 3,
+    "Production Candidate": 4
+  },
+  "blockers": [
+    {
+      "id": "no_business_owner",
+      "indicator_id": "business_owner_assigned",
+      "trigger_when_status_in": ["not_started"],
+      "impact": "production_blocked",
+      "label": "No business owner assigned",
+      "message": "No business owner is formally assigned. Production deployment is blocked until accountability is established.",
+      "remediation": "Formally assign a named business owner with documented accountability for operational outcomes."
+    },
+    {
+      "id": "no_technical_owner",
+      "indicator_id": "technical_owner_assigned",
+      "trigger_when_status_in": ["not_started"],
+      "impact": "production_blocked",
+      "label": "No technical owner assigned",
+      "message": "No technical owner is formally assigned. Production deployment is blocked until platform accountability is established.",
+      "remediation": "Formally assign a named technical owner accountable for platform, model lifecycle, and integrations."
+    },
+    {
+      "id": "no_escalation_path",
+      "indicator_id": "escalation_workflow_documented",
+      "trigger_when_status_in": ["not_started"],
+      "impact": "constrained_pilot_only",
+      "label": "No escalation path documented",
+      "message": "No documented escalation workflow exists. Initiative is constrained to pilot scope until escalation is formalized.",
+      "remediation": "Document escalation paths, response time expectations, and decision rights before broader rollout."
+    },
+    {
+      "id": "no_governance_cadence",
+      "indicator_id": "governance_cadence_established",
+      "trigger_when_status_in": ["not_started"],
+      "impact": "remediation_required",
+      "label": "No governance review cadence",
+      "message": "No governance review cadence is established. Remediation is required before deployment proceeds.",
+      "remediation": "Establish a recurring governance review cadence with named decision-makers and decision rights."
+    },
+    {
+      "id": "no_user_training_plan",
+      "indicator_id": "training_plan_documented",
+      "trigger_when_status_in": ["not_started"],
+      "impact": "production_blocked",
+      "label": "No user training plan",
+      "message": "No user training plan exists. Production deployment is blocked until user enablement is planned.",
+      "remediation": "Document a user training plan covering modality, sequencing, and reinforcement for impacted users."
+    }
+  ]
+}
