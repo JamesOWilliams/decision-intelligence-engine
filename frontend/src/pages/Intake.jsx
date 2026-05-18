@@ -38,7 +38,7 @@ export default function Intake() {
         const a = await api.getAssessment(sessionId);
         setInitiative({ ...initiative, ...(a.initiative || {}) });
       } catch (e) {
-        console.error(e);
+        log.error(e);
       } finally {
         setLoading(false);
       }

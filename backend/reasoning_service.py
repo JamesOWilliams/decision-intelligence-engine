@@ -9,11 +9,60 @@ import os
 import json
 import logging
 import uuid
-from typing import Dict, Any
+from typing import Dict, Any, Optional, Set
 
 from emergentintegrations.llm.chat import LlmChat, UserMessage
 
 logger = logging.getLogger(__name__)
+
+LLM_MODEL = "claude-sonnet-4-5-20250929"
+LLM_PROVIDER = "anthropic"
+
+
+# ===== Shared LLM helpers =====
+
+def _strip_code_fences(text: str) -> str:
+    """Remove ``` fences if the model wrapped its JSON in them."""
+    if not text.startswith("```"):
+        return text
+    lines = text.splitlines()
+    return "\n".join(ln for ln in lines if not ln.strip().startswith("```")).strip()
+
+
+async def _call_llm_for_json(
+    *,
+    session_prefix: str,
+    system_prompt: str,
+    user_text: str,
+    required_keys: Optional[Set[str]] = None,
+) -> Dict[str, Any]:
+    """
+    Make a single-turn Claude Sonnet 4.5 call expecting a JSON object response.
+    Raises on any failure (missing key, network error, malformed JSON, missing
+    required schema keys). Callers are responsible for catching and falling back.
+    """
+    api_key = os.environ.get("EMERGENT_LLM_KEY")
+    if not api_key:
+        raise RuntimeError("EMERGENT_LLM_KEY missing")
+
+    chat = LlmChat(
+        api_key=api_key,
+        session_id=f"{session_prefix}-{uuid.uuid4()}",
+        system_message=system_prompt,
+    ).with_model(LLM_PROVIDER, LLM_MODEL)
+
+    raw = await chat.send_message(UserMessage(text=user_text))
+    text = raw.strip() if isinstance(raw, str) else str(raw).strip()
+    text = _strip_code_fences(text)
+
+    parsed = json.loads(text)
+    if not isinstance(parsed, dict):
+        raise ValueError(f"Expected JSON object, got {type(parsed).__name__}")
+
+    if required_keys and not required_keys.issubset(parsed.keys()):
+        raise ValueError(f"LLM response missing required keys; got {set(parsed.keys())}")
+
+    return parsed
 
 SYSTEM_PROMPT = """You are an enterprise operational readiness analyst writing for executive leadership at a Fortune 500 organization. Your role is to interpret a pre-computed organizational readiness assessment and produce a consultative narrative briefing.
 
@@ -137,36 +186,14 @@ async def generate_reasoning(
     initiative: Dict[str, Any],
     scores: Dict[str, Any],
 ) -> Dict[str, Any]:
-    api_key = os.environ.get("EMERGENT_LLM_KEY")
-    if not api_key:
-        logger.warning("EMERGENT_LLM_KEY missing; using fallback narrative.")
-        return _fallback_narrative(initiative, scores)
-
+    """Generate consultative executive narrative via Claude. Falls back on any failure."""
     try:
-        chat = LlmChat(
-            api_key=api_key,
-            session_id=f"die-reasoning-{uuid.uuid4()}",
-            system_message=SYSTEM_PROMPT,
-        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
-
-        user_msg = UserMessage(text=_build_user_message(initiative, scores))
-        raw = await chat.send_message(user_msg)
-
-        text = raw.strip() if isinstance(raw, str) else str(raw).strip()
-        # Strip code fences if model wrapped output
-        if text.startswith("```"):
-            lines = text.splitlines()
-            lines = [ln for ln in lines if not ln.strip().startswith("```")]
-            text = "\n".join(lines).strip()
-
-        parsed = json.loads(text)
-
-        # Schema validation (minimal)
-        required = {"narrative", "strengths", "risks", "remediation_actions"}
-        if not required.issubset(parsed.keys()):
-            raise ValueError(f"LLM response missing required keys; got {set(parsed.keys())}")
-
-        return parsed
+        return await _call_llm_for_json(
+            session_prefix="die-reasoning",
+            system_prompt=SYSTEM_PROMPT,
+            user_text=_build_user_message(initiative, scores),
+            required_keys={"narrative", "strengths", "risks", "remediation_actions"},
+        )
     except Exception as e:
         logger.exception("Reasoning service failed; using fallback. Error: %s", e)
         return _fallback_narrative(initiative, scores)
@@ -229,45 +256,32 @@ async def generate_executive_abstract(
     reasoning: Dict[str, Any],
 ) -> str:
     """Generate a 2-4 sentence boardroom-grade abstract. Deterministic fallback on failure."""
-    api_key = os.environ.get("EMERGENT_LLM_KEY")
-    if not api_key:
-        return _fallback_abstract(initiative, scores)
-
+    payload = {
+        "initiative_name": initiative.get("name"),
+        "domain_score": scores["domain_score"],
+        "maturity_band": scores["maturity_band"],
+        "confidence": scores["confidence"],
+        "recommendation_tier": scores["recommendation_tier"],
+        "tier_downgraded_by_blockers": scores.get("tier_downgraded", False),
+        "triggered_blockers": [
+            {"label": b["label"], "impact": b["impact"]}
+            for b in scores.get("triggered_blockers", [])
+        ],
+        "top_risks": scores.get("risks", [])[:2],
+        "existing_narrative": reasoning.get("narrative", ""),
+    }
+    user_text = (
+        "Produce the executive abstract JSON for the following assessment data.\n\n"
+        f"{json.dumps(payload, indent=2)}\n\n"
+        "Return ONLY the JSON object."
+    )
     try:
-        payload = {
-            "initiative_name": initiative.get("name"),
-            "domain_score": scores["domain_score"],
-            "maturity_band": scores["maturity_band"],
-            "confidence": scores["confidence"],
-            "recommendation_tier": scores["recommendation_tier"],
-            "tier_downgraded_by_blockers": scores.get("tier_downgraded", False),
-            "triggered_blockers": [
-                {"label": b["label"], "impact": b["impact"]}
-                for b in scores.get("triggered_blockers", [])
-            ],
-            "top_risks": scores.get("risks", [])[:2],
-            "existing_narrative": reasoning.get("narrative", ""),
-        }
-        chat = LlmChat(
-            api_key=api_key,
-            session_id=f"die-abstract-{uuid.uuid4()}",
-            system_message=ABSTRACT_SYSTEM_PROMPT,
-        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
-
-        msg = UserMessage(
-            text=(
-                "Produce the executive abstract JSON for the following assessment data.\n\n"
-                f"{json.dumps(payload, indent=2)}\n\n"
-                "Return ONLY the JSON object."
-            )
+        parsed = await _call_llm_for_json(
+            session_prefix="die-abstract",
+            system_prompt=ABSTRACT_SYSTEM_PROMPT,
+            user_text=user_text,
+            required_keys={"abstract"},
         )
-        raw = await chat.send_message(msg)
-        text = raw.strip() if isinstance(raw, str) else str(raw).strip()
-        if text.startswith("```"):
-            lines = text.splitlines()
-            lines = [ln for ln in lines if not ln.strip().startswith("```")]
-            text = "\n".join(lines).strip()
-        parsed = json.loads(text)
         abstract = (parsed.get("abstract") or "").strip()
         if not abstract:
             raise ValueError("Empty abstract")

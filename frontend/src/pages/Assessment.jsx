@@ -4,6 +4,7 @@ import { ArrowUpRight, HelpCircle, Loader2 } from "lucide-react";
 import TopNav from "@/components/TopNav";
 import MaturitySelector from "@/components/MaturitySelector";
 import { api } from "@/lib/api";
+import { log } from "@/lib/logger";
 
 export default function Assessment() {
   const { sessionId } = useParams();
@@ -39,7 +40,10 @@ export default function Assessment() {
     if (assessment) refreshScore();
   }, [assessment, refreshScore]);
 
-  const dimensions = ontology?.domain?.dimensions || [];
+  const dimensions = useMemo(
+    () => ontology?.domain?.dimensions || [],
+    [ontology]
+  );
   const activeDim = dimensions[activeIdx];
 
   const totalIndicators = useMemo(
@@ -71,7 +75,7 @@ export default function Assessment() {
       await api.generateReport(sessionId);
       navigate(`/report/${sessionId}`);
     } catch (e) {
-      console.error(e);
+      log.error(e);
       setGenerating(false);
     }
   };
