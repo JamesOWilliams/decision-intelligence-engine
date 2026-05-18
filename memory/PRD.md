@@ -38,7 +38,17 @@ Build an enterprise operational assessment system to evaluate whether AI initiat
 - ✅ Executive Report (score hero, MaturityBandBadge, ConfidenceChip, RecommendationPill with tier-tone coloring, dimension breakdown bars, blocker callouts, strengths/risks two-column, prioritized remediation list, italic reasoning pull-quote, methodology accordion, browser-print Export PDF with `@media print` stylesheet)
 - ✅ Design system: Bone (#F4F4F0) + Ink (#0A0A0A) + Oxblood (#7F1D1D) accent; Newsreader serif + IBM Plex Sans/Mono pairing; hairline borders, zero shadows, strict left-alignment
 - ✅ data-testid on every interactive + key informational element
-- ✅ Full test coverage — backend pytest suite (13/13) at `/app/backend/tests/test_die_backend.py`, frontend Playwright e2e all-green
+- ✅ Full test coverage — backend pytest suite (21/21) at `/app/backend/tests/test_die_backend.py`, frontend Playwright e2e all-green
+
+### Share Briefing Feature (added Jan 2026)
+- ✅ `POST /api/assessments/:id/share` — generates tokenized read-only link (idempotent; reuses existing active link)
+- ✅ `GET /api/shared/:token` — public, no-auth retrieval; tracks `view_count` and `last_viewed_at`
+- ✅ Claude-generated boardroom-grade executive abstract (2-4 sentences) cached on share-link record
+- ✅ Forward-compatible expiration architecture (`expires_in_days` request field, `expires_at` persisted; default null in MVP)
+- ✅ Forward-compatible revocation fields (`is_active`, `revoked_at`) ready for future revoke endpoint
+- ✅ ShareBriefingDialog with copy-to-clipboard, view-count display, expiration metadata
+- ✅ Dedicated `/shared/:token` SharedBriefing page — boardroom aesthetic, executive abstract as lead element, NO editing/navigation chrome, "CONFIDENTIAL" eyebrow, Print button, fully print-friendly
+- ✅ Graceful 404 ("Unavailable") for invalid/orphaned tokens
 
 ## Tech Stack
 - Frontend: React 19, Tailwind 3, react-router-dom 7, axios, lucide-react
@@ -47,9 +57,12 @@ Build an enterprise operational assessment system to evaluate whether AI initiat
 
 ## Prioritized Backlog
 ### P1 (Polish — defer until user feedback)
+- Add Revoke share link endpoint + compound index on `share_links (assessment_id, is_active)` for future-proof idempotency
+- Self-heal stale share-link rows when demo is re-seeded (currently orphans gracefully 404)
 - Surface error toasts in Landing/Intake/Assessment on API failure (currently console-only)
 - Tighten Report.jsx auto-generate fallback — explicit user action instead of auto-trigger on 404
 - Granular per-indicator weighting in ontology (structure ready; UI for editing weights deferred)
+- ShareBriefingDialog: useRef guard to avoid re-fetching on each dialog open (currently idempotent backend masks this)
 
 ### P2 (Phase 2 — PRD §22)
 - Additional ontology domains: Strategic Readiness, Data Readiness, Technical Readiness, Governance Readiness, Operational Sustainability
