@@ -1,0 +1,37 @@
+{
+  "summary": "Share Briefing feature — end-to-end verification. Backend: 21/21 pytest pass including 8 new share-link tests (create+idempotent, 404 when no report, executive-abstract content quality, expires_in_days forward-compat, GET /shared/:token full payload + view_count increment + invalid-token 404). Frontend: share-briefing-btn renders next to Export PDF on /report/:id; ShareBriefingDialog opens, shows loading then renders share-link-input + Copy button (transitions to green 'Copied'); metadata (Access: View-only · no login required, Expiration: None, Views, Created) rendered correctly. /shared/:token loads SharedBriefing with SharedHeader (DIE · Shared Executive Briefing · CONFIDENTIAL · Print), Executive Abstract as lead element (~573 chars Claude-generated), score hero, badges, blockers, strengths/risks, remediation, narrative blockquote. No edit/share controls on shared page. shared-print-btn invokes window.print(). Invalid token renders graceful 'Unavailable' message.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_die_backend.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py create_share_link: idempotency relies on {is_active: true, revoked_at: null}; if a future revoke endpoint flips is_active=false, the next POST would create a *second* token while the report still exists — acceptable for MVP but worth a unique compound index (assessment_id, is_active) when revocation lands.",
+    "server.py get_shared_briefing: expires_at parsing uses datetime.fromisoformat — won't accept trailing 'Z' on stricter timestamps. Current generator writes timezone-aware isoformat so OK today, but worth normalizing in a single helper to avoid drift.",
+    "reasoning_service.generate_executive_abstract: when the LLM returns abstract slightly longer than 700 chars the system does not enforce the 200-700 window mentioned in the spec; output is still acceptable but the constraint is not validated server-side (PRD says 200-700). Consider a soft length guard with a single regenerate retry, or downgrade the spec to 'aim for 2-4 sentences'.",
+    "Stale share-link issue noted by main agent (re-seeding demo deletes old report but leaves share_links rows pointing at the deleted report) is real — GET /shared/:token returns 404 with detail 'Underlying report no longer exists' which is graceful, but UI just shows 'Unavailable'. Acceptable for MVP per scope note.",
+    "ShareBriefingDialog: useEffect re-fetches each time `open` flips from false→true since `link` resets only when component unmounts; today fine because backend is idempotent (returns existing record), but worth a useRef guard to avoid an extra POST per open."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_die_backend.py (appended TestShareCreate + TestSharedGet classes; 8 new tests)"
+  ],
+  "success_rate": {
+    "backend": "100% (21/21, including 8 new share tests)",
+    "frontend": "100% (share dialog flow, /shared/:token render, print, invalid-token unavailable)"
+  },
+  "test_credentials": "N/A — no auth in MVP",
+  "seed_data_creation": "Uses existing demo assessment fetched via GET /api/assessments/demo/current. Share tests create additional TEST assessments and share_links rows (not cleaned, but harmless — share_links accumulate by design).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend suite: cd /app/backend && python -m pytest tests/test_die_backend.py -v (LLM_TIMEOUT=90s, run ~95s total). Share tests live under TestShareCreate / TestSharedGet classes. Frontend public URL: https://emergence-plan.preview.emergentagent.com (note: review_request URL 24902dde-… does not resolve in this env; frontend/.env REACT_APP_BACKEND_URL is authoritative). Share testids: share-briefing-btn, share-dialog, share-dialog-close, share-link-input, share-link-copy, shared-header, executive-abstract, shared-print-btn, shared-briefing-shell. Note: when re-seeding demo via POST /api/assessments/seed-demo, prior share_links rows become orphaned (point at deleted report) — GET /shared/:token returns 404 'Underlying report no longer exists'. Confirmed by main agent as out of scope.",
+  "rca of the issue": "No bugs found. One self-inflicted Playwright assertion error during first frontend run (case-sensitive 'Expiration' check against text rendered via CSS uppercase — labels were correct, assertion was wrong). Fixed in second run by reading rendered inner_text uppercase. Feature works end-to-end."
+}

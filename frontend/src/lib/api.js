@@ -21,4 +21,8 @@ export const api = {
     client.get("/assessments/demo/current").then((r) => r.data),
   seedDemo: () =>
     client.post("/assessments/seed-demo").then((r) => r.data),
+  createShareLink: (assessmentId, body = {}) =>
+    client.post(`/assessments/${assessmentId}/share`, body).then((r) => r.data),
+  getShared: (token) =>
+    client.get(`/shared/${token}`).then((r) => r.data),
 };

@@ -137,7 +137,6 @@ async def generate_reasoning(
     initiative: Dict[str, Any],
     scores: Dict[str, Any],
 ) -> Dict[str, Any]:
-    """Call Claude Sonnet 4.5 to generate executive narrative; fallback on failure."""
     api_key = os.environ.get("EMERGENT_LLM_KEY")
     if not api_key:
         logger.warning("EMERGENT_LLM_KEY missing; using fallback narrative.")
@@ -171,3 +170,108 @@ async def generate_reasoning(
     except Exception as e:
         logger.exception("Reasoning service failed; using fallback. Error: %s", e)
         return _fallback_narrative(initiative, scores)
+
+
+
+# ===== Executive Abstract (for shared briefings) =====
+
+ABSTRACT_SYSTEM_PROMPT = """You are writing a short executive abstract that will appear at the top of a shareable, boardroom-grade operational readiness briefing for senior leadership.
+
+PURPOSE:
+Compress the assessment into a 2 to 4 sentence executive abstract — the single most distilled summary a senior reader needs to understand:
+1. Readiness status (score + maturity band) and recommendation tier
+2. The most material risk or blocker (one only)
+3. The required executive action implied by the recommendation
+
+TONE & STYLE:
+- Board-meeting voice: confident, surgical, unhedged
+- No greetings, no emoji, no hedging language, no bullet markers
+- Past or present tense; never speculative
+- Reference the initiative by name in the first sentence
+- Maximum 4 sentences; aim for 2-3
+
+CRITICAL CONSTRAINTS:
+- You MUST NOT contradict the provided score, tier, or blocker findings
+- You MAY paraphrase or compress the longer narrative
+- Return ONLY a single JSON object: {"abstract": "string"}
+"""
+
+
+def _fallback_abstract(initiative: Dict[str, Any], scores: Dict[str, Any]) -> str:
+    name = initiative.get("name", "This initiative")
+    band = scores["maturity_band"]
+    tier = scores["recommendation_tier"]
+    score = scores["domain_score"]
+
+    parts = [
+        f"{name} achieves an organizational readiness score of {score} ({band} maturity), "
+        f"with a current recommendation of {tier.lower()}."
+    ]
+    if scores.get("triggered_blockers"):
+        b = scores["triggered_blockers"][0]
+        parts.append(f"The most material blocker is: {b['label'].lower()}.")
+    elif scores.get("risks"):
+        r = scores["risks"][0]
+        parts.append(
+            f"The most material risk is {r['dimension']} at {r['score']} ({r['band']})."
+        )
+    parts.append(
+        "Executive sponsorship is required to formalize remediation before scope expansion."
+        if tier != "Production Candidate"
+        else "Executive sponsorship is required to confirm production readiness gating criteria."
+    )
+    return " ".join(parts)
+
+
+async def generate_executive_abstract(
+    initiative: Dict[str, Any],
+    scores: Dict[str, Any],
+    reasoning: Dict[str, Any],
+) -> str:
+    """Generate a 2-4 sentence boardroom-grade abstract. Deterministic fallback on failure."""
+    api_key = os.environ.get("EMERGENT_LLM_KEY")
+    if not api_key:
+        return _fallback_abstract(initiative, scores)
+
+    try:
+        payload = {
+            "initiative_name": initiative.get("name"),
+            "domain_score": scores["domain_score"],
+            "maturity_band": scores["maturity_band"],
+            "confidence": scores["confidence"],
+            "recommendation_tier": scores["recommendation_tier"],
+            "tier_downgraded_by_blockers": scores.get("tier_downgraded", False),
+            "triggered_blockers": [
+                {"label": b["label"], "impact": b["impact"]}
+                for b in scores.get("triggered_blockers", [])
+            ],
+            "top_risks": scores.get("risks", [])[:2],
+            "existing_narrative": reasoning.get("narrative", ""),
+        }
+        chat = LlmChat(
+            api_key=api_key,
+            session_id=f"die-abstract-{uuid.uuid4()}",
+            system_message=ABSTRACT_SYSTEM_PROMPT,
+        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
+
+        msg = UserMessage(
+            text=(
+                "Produce the executive abstract JSON for the following assessment data.\n\n"
+                f"{json.dumps(payload, indent=2)}\n\n"
+                "Return ONLY the JSON object."
+            )
+        )
+        raw = await chat.send_message(msg)
+        text = raw.strip() if isinstance(raw, str) else str(raw).strip()
+        if text.startswith("```"):
+            lines = text.splitlines()
+            lines = [ln for ln in lines if not ln.strip().startswith("```")]
+            text = "\n".join(lines).strip()
+        parsed = json.loads(text)
+        abstract = (parsed.get("abstract") or "").strip()
+        if not abstract:
+            raise ValueError("Empty abstract")
+        return abstract
+    except Exception as e:
+        logger.exception("Abstract generation failed; using fallback. Error: %s", e)
+        return _fallback_abstract(initiative, scores)

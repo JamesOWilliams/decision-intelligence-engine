@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { Printer, ArrowLeft, Loader2, Share2 } from "lucide-react";
-import TopNav from "@/components/TopNav";
-import ShareBriefingDialog from "@/components/ShareBriefingDialog";
+import { useParams } from "react-router-dom";
+import { Printer, Loader2 } from "lucide-react";
 import {
   MaturityBandBadge,
   ConfidenceChip,
@@ -22,98 +20,69 @@ function FormattedDate({ iso }) {
   );
 }
 
-export default function Report() {
-  const { sessionId } = useParams();
-  const navigate = useNavigate();
-  const [report, setReport] = useState(null);
+/**
+ * Boardroom-grade shared briefing — no editing chrome, no navigation,
+ * lead element is the Claude-generated executive abstract.
+ */
+export default function SharedBriefing() {
+  const { token } = useParams();
+  const [data, setData] = useState(null);
+  const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [showMethodology, setShowMethodology] = useState(false);
-  const [shareOpen, setShareOpen] = useState(false);
 
   useEffect(() => {
     (async () => {
       try {
-        const r = await api.getReport(sessionId);
-        setReport(r);
-      } catch {
-        // Try to generate if missing
-        try {
-          const r = await api.generateReport(sessionId);
-          setReport(r);
-        } catch (e) {
-          console.error(e);
-        }
+        const res = await api.getShared(token);
+        setData(res);
+      } catch (e) {
+        setError(e?.response?.data?.detail || "This shared briefing is no longer available.");
       } finally {
         setLoading(false);
       }
     })();
-  }, [sessionId]);
+  }, [token]);
 
   if (loading) {
     return (
       <div className="App">
-        <TopNav />
-        <div className="max-w-screen-2xl mx-auto px-12 py-24 flex items-center gap-3 text-graphite">
+        <SharedHeader />
+        <div className="max-w-5xl mx-auto px-6 md:px-12 py-24 flex items-center gap-3 text-graphite">
           <Loader2 className="w-5 h-5 animate-spin" />
-          <span className="eyebrow">Generating briefing…</span>
+          <span className="eyebrow">Loading shared briefing…</span>
         </div>
       </div>
     );
   }
 
-  if (!report) {
+  if (error || !data) {
     return (
       <div className="App">
-        <TopNav />
-        <div className="max-w-screen-2xl mx-auto px-12 py-24">
-          <div className="eyebrow">No briefing available.</div>
+        <SharedHeader />
+        <div className="max-w-5xl mx-auto px-6 md:px-12 py-24">
+          <div className="eyebrow mb-3">Unavailable</div>
+          <h1 className="display-serif text-4xl text-ink">{error || "Briefing not available."}</h1>
+          <p className="font-body text-graphite mt-4 max-w-2xl">
+            The link may have been revoked, expired, or never generated. Please request a fresh link
+            from the briefing owner.
+          </p>
         </div>
       </div>
     );
   }
 
+  const { report, executive_abstract, shared_at } = data;
   const { initiative, scores, reasoning, generated_at, ontology_version } = report;
 
   return (
     <div className="App">
-      <TopNav
-        crumb={
-          <>
-            <span>Step 03</span> · <span className="text-ink">Executive Briefing</span>
-          </>
-        }
-        right={
-          <div className="flex items-center gap-3 no-print">
-            <button
-              onClick={() => navigate(-1)}
-              data-testid="report-back-btn"
-              className="eyebrow hover:text-ink transition-colors flex items-center gap-1.5"
-            >
-              <ArrowLeft className="w-3 h-3" /> Back
-            </button>
-            <button
-              onClick={() => setShareOpen(true)}
-              data-testid="share-briefing-btn"
-              className="inline-flex items-center gap-2 border border-ink text-ink px-4 py-2 text-sm font-medium hover:bg-ink hover:text-bone transition-colors"
-            >
-              <Share2 className="w-4 h-4" /> Share Briefing
-            </button>
-            <button
-              onClick={() => window.print()}
-              data-testid="export-pdf-btn"
-              className="inline-flex items-center gap-2 bg-ink text-bone px-4 py-2 text-sm font-medium hover:bg-graphite transition-colors"
-            >
-              <Printer className="w-4 h-4" /> Export PDF
-            </button>
-          </div>
-        }
-      />
+      <SharedHeader sharedAt={shared_at} />
 
-      <main className="max-w-5xl mx-auto px-6 md:px-12 pt-12 pb-24 print-shell animate-fade-in" data-testid="report-shell">
+      <main className="max-w-5xl mx-auto px-6 md:px-12 pt-10 pb-20 print-shell animate-fade-in" data-testid="shared-briefing-shell">
         {/* Document header */}
         <header className="pb-10 border-b border-ink">
           <div className="flex items-center justify-between">
-            <div className="eyebrow">Executive Operational Readiness Briefing</div>
+            <div className="eyebrow">Executive Operational Readiness · Confidential</div>
             <div className="eyebrow">
               <FormattedDate iso={generated_at} /> · Ontology v{ontology_version}
             </div>
@@ -138,6 +107,25 @@ export default function Report() {
             </div>
           </div>
         </header>
+
+        {/* Executive Abstract — lead element */}
+        <section className="mt-12 print-section" data-testid="executive-abstract">
+          <div className="grid grid-cols-12 gap-8">
+            <div className="col-span-12 md:col-span-3">
+              <div className="eyebrow">Executive Abstract</div>
+              <div className="mt-3 mono-num text-[10px] tracking-[0.16em] text-slate2">
+                FOR BOARD-LEVEL READING
+              </div>
+            </div>
+            <div className="col-span-12 md:col-span-9">
+              <p className="font-heading text-2xl md:text-3xl text-ink leading-snug">
+                {executive_abstract}
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <div className="hr-rule mt-16" />
 
         {/* Score hero */}
         <section className="grid grid-cols-12 gap-8 mt-12 print-section">
@@ -167,19 +155,14 @@ export default function Report() {
             </div>
           </div>
 
-          {/* Reasoning pull-quote */}
           <div className="col-span-12 md:col-span-5">
             <div className="eyebrow mb-3">Executive Reasoning</div>
-            <blockquote
-              data-testid="reasoning-narrative"
-              className="font-heading text-xl md:text-2xl leading-relaxed text-ink border-l border-ink pl-6 py-1 italic"
-            >
+            <blockquote className="font-heading text-xl md:text-2xl leading-relaxed text-ink border-l border-ink pl-6 py-1 italic">
               {reasoning?.narrative}
             </blockquote>
           </div>
         </section>
 
-        {/* Initiative summary */}
         {initiative.description && (
           <section className="mt-16 print-section">
             <div className="eyebrow mb-3">Initiative Summary</div>
@@ -231,7 +214,7 @@ export default function Report() {
             <div className="border-b border-ink pb-4 mb-6">
               <h2 className="display-serif text-3xl">Organizational Strengths</h2>
             </div>
-            <ul data-testid="strengths-list" className="space-y-4">
+            <ul className="space-y-4">
               {(reasoning?.strengths || []).map((s, i) => (
                 <li key={i} className="flex gap-4">
                   <span className="mono-num text-xs text-slate2 mt-1.5">{String(i + 1).padStart(2, "0")}</span>
@@ -244,7 +227,7 @@ export default function Report() {
             <div className="border-b border-ink pb-4 mb-6">
               <h2 className="display-serif text-3xl">Operational Risks</h2>
             </div>
-            <ul data-testid="risks-list" className="space-y-4">
+            <ul className="space-y-4">
               {(reasoning?.risks || []).map((r, i) => (
                 <li key={i} className="flex gap-4">
                   <span className="mono-num text-xs text-oxblood mt-1.5">{String(i + 1).padStart(2, "0")}</span>
@@ -261,7 +244,7 @@ export default function Report() {
             <h2 className="display-serif text-3xl">Prioritized Remediation Actions</h2>
             <div className="eyebrow">Sequenced by impact</div>
           </div>
-          <ol data-testid="remediation-list" className="space-y-8">
+          <ol className="space-y-8">
             {(reasoning?.remediation_actions || []).map((a, i) => (
               <li key={i} className="grid grid-cols-12 gap-6">
                 <div className="col-span-2 md:col-span-1">
@@ -276,47 +259,48 @@ export default function Report() {
           </ol>
         </section>
 
-        {/* Methodology accordion */}
-        <section className="mt-24 border-t border-hairline pt-6 no-print">
-          <button
-            onClick={() => setShowMethodology((v) => !v)}
-            data-testid="methodology-toggle"
-            className="eyebrow w-full text-left flex items-center justify-between hover:text-ink transition-colors"
-          >
-            <span>Methodology & Scoring Logic</span>
-            <span className="mono-num">{showMethodology ? "−" : "+"}</span>
-          </button>
-          {showMethodology && (
-            <div className="font-body text-sm text-graphite pt-4 space-y-3 leading-relaxed max-w-4xl">
-              <p>
-                Each evidence indicator is rated on a five-level maturity scale (Not Started, Informal, Drafted, Approved, Operationalized).
-                Indicator scores are weighted and aggregated into sub-dimension and dimension scores. Dimensions are weighted into a single domain score:
-                Change Management 25%, Stakeholder Alignment 20%, Operational Ownership 25%, Cross-Functional Coordination 20%, Training & Enablement 10%.
-              </p>
-              <p>
-                Confidence is derived from evidence completeness, average indicator maturity, and consistency of dimension scores.
-                The system overrides recommendation tiers when operational blockers are triggered — production-blocking gaps cap the recommendation at
-                "Remediate Before Expansion," and missing escalation paths cap it at "Constrained Pilot."
-              </p>
-              <p>
-                The deterministic engine produces the score and tier. The reasoning layer (Claude Sonnet 4.5) explains them in consultative language;
-                it does not alter the numerical outputs.
-              </p>
-            </div>
-          )}
-        </section>
-
-        {/* Print-only footer */}
-        <footer className="mt-20 pt-6 border-t border-ink print-show-only text-xs text-graphite">
-          Decision Intelligence Engine · Organizational Readiness · Ontology v{ontology_version}
+        {/* Document footer (also prints) */}
+        <footer className="mt-24 pt-6 border-t border-ink flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div className="eyebrow">
+            Decision Intelligence Engine · Organizational Readiness · Ontology v{ontology_version}
+          </div>
+          <div className="eyebrow">Confidential · Read-Only Briefing</div>
         </footer>
       </main>
-
-      <ShareBriefingDialog
-        open={shareOpen}
-        onClose={() => setShareOpen(false)}
-        assessmentId={sessionId}
-      />
     </div>
+  );
+}
+
+function SharedHeader({ sharedAt }) {
+  return (
+    <header
+      data-testid="shared-header"
+      className="no-print h-16 border-b border-ink/90 flex items-center justify-between px-6 md:px-12 bg-bone"
+    >
+      <div className="flex items-center gap-3">
+        <div className="mono-num text-[11px] tracking-[0.22em] uppercase text-graphite">
+          DIE
+        </div>
+        <span className="text-ink">·</span>
+        <span className="font-heading text-lg text-ink tracking-tight">
+          Shared Executive Briefing
+        </span>
+        <span className="eyebrow ml-3 hidden md:inline">CONFIDENTIAL</span>
+      </div>
+      <div className="flex items-center gap-4">
+        {sharedAt && (
+          <span className="eyebrow hidden md:inline">
+            Shared {new Date(sharedAt).toLocaleDateString()}
+          </span>
+        )}
+        <button
+          onClick={() => window.print()}
+          data-testid="shared-print-btn"
+          className="inline-flex items-center gap-2 bg-ink text-bone px-4 py-2 text-sm font-medium hover:bg-graphite transition-colors"
+        >
+          <Printer className="w-4 h-4" /> Print
+        </button>
+      </div>
+    </header>
   );
 }

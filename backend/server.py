@@ -7,13 +7,14 @@ import os
 import json
 import logging
 import uuid
+import secrets
 from pathlib import Path
 from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any, Literal
 from datetime import datetime, timezone
 
 from scoring_engine import score_assessment
-from reasoning_service import generate_reasoning
+from reasoning_service import generate_reasoning, generate_executive_abstract
 from demo_seed import DEMO_INITIATIVE, DEMO_EVIDENCE
 
 
@@ -222,6 +223,92 @@ async def get_demo_assessment():
     # Lazy seed
     seeded = await seed_demo()
     return {"assessment_id": seeded["assessment_id"]}
+
+
+# ===== Share Briefing Routes =====
+
+class ShareCreateRequest(BaseModel):
+    # Reserved for future expansion (expiration, revocation). MVP accepts empty body.
+    expires_in_days: Optional[int] = None  # not enforced in MVP, persisted as null
+
+
+@api_router.post("/assessments/{assessment_id}/share")
+async def create_share_link(assessment_id: str, payload: ShareCreateRequest = ShareCreateRequest()):
+    """
+    Create (or return existing active) share link for a generated report.
+    Idempotent: returns the existing active link if one exists for this assessment.
+    """
+    # Ensure report exists
+    report = await db.reports.find_one({"assessment_id": assessment_id}, {"_id": 0})
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not generated yet")
+
+    # Return existing active link if present (idempotent)
+    existing = await db.share_links.find_one(
+        {"assessment_id": assessment_id, "is_active": True, "revoked_at": None},
+        {"_id": 0},
+    )
+    if existing:
+        return existing
+
+    # Generate executive abstract (cached on the share link record)
+    abstract = await generate_executive_abstract(report["initiative"], report["scores"], report["reasoning"])
+
+    expires_at = None  # MVP: no expiration; structure preserved for future
+    if payload.expires_in_days and payload.expires_in_days > 0:
+        from datetime import timedelta
+        expires_at = (datetime.now(timezone.utc) + timedelta(days=payload.expires_in_days)).isoformat()
+
+    share_doc = {
+        "id": str(uuid.uuid4()),
+        "token": secrets.token_urlsafe(32),
+        "assessment_id": assessment_id,
+        "report_id": report["id"],
+        "executive_abstract": abstract,
+        "created_at": _now_iso(),
+        "expires_at": expires_at,
+        "revoked_at": None,
+        "is_active": True,
+        "view_count": 0,
+    }
+    await db.share_links.insert_one(share_doc.copy())
+    share_doc.pop("_id", None)
+    return share_doc
+
+
+@api_router.get("/shared/{token}")
+async def get_shared_briefing(token: str):
+    """Public, read-only retrieval of a shared briefing by token."""
+    link = await db.share_links.find_one({"token": token}, {"_id": 0})
+    if not link or not link.get("is_active"):
+        raise HTTPException(status_code=404, detail="Shared briefing not found or no longer available")
+
+    # Expiration check (forward-compatible; no-op in MVP since expires_at is null by default)
+    if link.get("expires_at"):
+        try:
+            expires_dt = datetime.fromisoformat(link["expires_at"])
+            if datetime.now(timezone.utc) > expires_dt:
+                raise HTTPException(status_code=410, detail="Shared briefing has expired")
+        except ValueError:
+            pass  # malformed date — treat as no expiration
+
+    report = await db.reports.find_one({"assessment_id": link["assessment_id"]}, {"_id": 0})
+    if not report:
+        raise HTTPException(status_code=404, detail="Underlying report no longer exists")
+
+    # Increment view count (best-effort)
+    await db.share_links.update_one(
+        {"token": token},
+        {"$inc": {"view_count": 1}, "$set": {"last_viewed_at": _now_iso()}},
+    )
+
+    return {
+        "token": link["token"],
+        "executive_abstract": link.get("executive_abstract"),
+        "shared_at": link["created_at"],
+        "expires_at": link.get("expires_at"),
+        "report": report,
+    }
 
 
 # ---- Mount router & CORS ----

@@ -256,3 +256,131 @@ class TestReportLLM:
         a = session.post(f"{API}/assessments", json={}, timeout=DEFAULT_TIMEOUT).json()
         r = session.get(f"{API}/assessments/{a['id']}/report", timeout=DEFAULT_TIMEOUT)
         assert r.status_code == 404
+
+
+# ----------------- Share Briefing -----------------
+@pytest.fixture(scope="module")
+def shared_assessment_with_report(session):
+    """Create an assessment, seed demo evidence, generate report. Returns assessment_id."""
+    from demo_seed import DEMO_INITIATIVE, DEMO_EVIDENCE  # noqa: WPS433
+    a = session.post(f"{API}/assessments", json={}, timeout=DEFAULT_TIMEOUT).json()
+    aid = a["id"]
+    session.patch(
+        f"{API}/assessments/{aid}",
+        json={"initiative": DEMO_INITIATIVE, "evidence": DEMO_EVIDENCE},
+        timeout=DEFAULT_TIMEOUT,
+    )
+    r = session.post(f"{API}/assessments/{aid}/report", timeout=LLM_TIMEOUT)
+    assert r.status_code == 200, r.text
+    return aid
+
+
+class TestShareCreate:
+    def test_create_share_link_returns_required_fields(self, session, shared_assessment_with_report):
+        aid = shared_assessment_with_report
+        r = session.post(f"{API}/assessments/{aid}/share", json={}, timeout=LLM_TIMEOUT)
+        assert r.status_code == 200, r.text
+        data = r.json()
+        # Required keys
+        for k in ("id", "token", "assessment_id", "report_id", "executive_abstract",
+                  "created_at", "expires_at", "revoked_at", "is_active", "view_count"):
+            assert k in data, f"missing key: {k}"
+        assert data["assessment_id"] == aid
+        assert isinstance(data["token"], str) and len(data["token"]) >= 20
+        assert data["expires_at"] is None
+        assert data["revoked_at"] is None
+        assert data["is_active"] is True
+        assert data["view_count"] == 0
+        assert isinstance(data["executive_abstract"], str) and len(data["executive_abstract"]) > 0
+
+    def test_create_share_link_is_idempotent(self, session, shared_assessment_with_report):
+        aid = shared_assessment_with_report
+        r1 = session.post(f"{API}/assessments/{aid}/share", json={}, timeout=LLM_TIMEOUT)
+        r2 = session.post(f"{API}/assessments/{aid}/share", json={}, timeout=LLM_TIMEOUT)
+        assert r1.status_code == 200 and r2.status_code == 200
+        assert r1.json()["token"] == r2.json()["token"]
+        assert r1.json()["id"] == r2.json()["id"]
+
+    def test_share_404_if_no_report(self, session):
+        a = session.post(f"{API}/assessments", json={}, timeout=DEFAULT_TIMEOUT).json()
+        r = session.post(f"{API}/assessments/{a['id']}/share", json={}, timeout=DEFAULT_TIMEOUT)
+        assert r.status_code == 404
+
+    def test_executive_abstract_content_quality(self, session, shared_assessment_with_report):
+        aid = shared_assessment_with_report
+        r = session.post(f"{API}/assessments/{aid}/share", json={}, timeout=LLM_TIMEOUT)
+        abstract = r.json()["executive_abstract"]
+        # Length window 200-700
+        assert 150 <= len(abstract) <= 800, f"abstract length {len(abstract)}: {abstract!r}"
+        # No markdown / no JSON wrapper
+        assert "```" not in abstract
+        assert not abstract.strip().startswith("{")
+        assert "**" not in abstract
+        # Mentions initiative name from demo
+        from demo_seed import DEMO_INITIATIVE
+        name = DEMO_INITIATIVE["name"]
+        # Should reference either initiative or numeric score/tier keyword
+        mentions_name = name.lower() in abstract.lower()
+        mentions_score_or_tier = (
+            "72" in abstract
+            or "score" in abstract.lower()
+            or "pilot" in abstract.lower()
+            or "structured" in abstract.lower()
+            or "remediate" in abstract.lower()
+        )
+        assert mentions_name or mentions_score_or_tier, abstract
+
+    def test_share_expires_in_days_persists(self, session):
+        """Forward-compat smoke test: expires_in_days=7 should persist a future expires_at."""
+        from demo_seed import DEMO_INITIATIVE, DEMO_EVIDENCE  # noqa: WPS433
+        from datetime import datetime, timezone
+        a = session.post(f"{API}/assessments", json={}, timeout=DEFAULT_TIMEOUT).json()
+        aid = a["id"]
+        session.patch(
+            f"{API}/assessments/{aid}",
+            json={"initiative": DEMO_INITIATIVE, "evidence": DEMO_EVIDENCE},
+            timeout=DEFAULT_TIMEOUT,
+        )
+        session.post(f"{API}/assessments/{aid}/report", timeout=LLM_TIMEOUT)
+        r = session.post(
+            f"{API}/assessments/{aid}/share",
+            json={"expires_in_days": 7},
+            timeout=LLM_TIMEOUT,
+        )
+        assert r.status_code == 200
+        data = r.json()
+        assert data["expires_at"] is not None
+        exp = datetime.fromisoformat(data["expires_at"])
+        assert exp > datetime.now(timezone.utc)
+
+
+class TestSharedGet:
+    def test_get_shared_returns_full_payload(self, session, shared_assessment_with_report):
+        aid = shared_assessment_with_report
+        cr = session.post(f"{API}/assessments/{aid}/share", json={}, timeout=LLM_TIMEOUT)
+        token = cr.json()["token"]
+        r = session.get(f"{API}/shared/{token}", timeout=DEFAULT_TIMEOUT)
+        assert r.status_code == 200, r.text
+        data = r.json()
+        for k in ("token", "executive_abstract", "shared_at", "expires_at", "report"):
+            assert k in data
+        rep = data["report"]
+        assert "scores" in rep and "reasoning" in rep
+        assert rep["scores"]["domain_score"] == 72
+        for k in ("narrative", "strengths", "risks", "remediation_actions"):
+            assert k in rep["reasoning"]
+
+    def test_get_shared_increments_view_count(self, session, shared_assessment_with_report):
+        aid = shared_assessment_with_report
+        cr = session.post(f"{API}/assessments/{aid}/share", json={}, timeout=LLM_TIMEOUT)
+        token = cr.json()["token"]
+        # Hit twice
+        session.get(f"{API}/shared/{token}", timeout=DEFAULT_TIMEOUT)
+        session.get(f"{API}/shared/{token}", timeout=DEFAULT_TIMEOUT)
+        # Recreate share link (idempotent) — should return same record with updated view_count
+        latest = session.post(f"{API}/assessments/{aid}/share", json={}, timeout=LLM_TIMEOUT).json()
+        assert latest["view_count"] >= 2
+
+    def test_get_shared_404_invalid_token(self, session):
+        r = session.get(f"{API}/shared/invalid-token-xyz-not-real", timeout=DEFAULT_TIMEOUT)
+        assert r.status_code == 404
