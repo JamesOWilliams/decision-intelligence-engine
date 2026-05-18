@@ -57,6 +57,10 @@ export default function Intake() {
     }
   };
 
+  // Keep latest initiative in a ref to avoid stale-closure writes on rapid blurs
+  const initiativeRef = React.useRef(initiative);
+  React.useEffect(() => { initiativeRef.current = initiative; }, [initiative]);
+
   const canContinue = initiative.name?.trim() && initiative.business_unit?.trim() && initiative.stage;
 
   const continueToAssessment = async () => {

@@ -192,7 +192,6 @@ async def seed_demo():
 
     # Replace existing demo if present
     await db.assessments.delete_many({"is_demo": True})
-    await db.reports.delete_many({"assessment_id": {"$in": []}})  # noop placeholder
     await db.assessments.insert_one(doc.copy())
 
     # Compute and store report
