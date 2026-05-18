@@ -29,6 +29,25 @@ export default function Report() {
   const [loading, setLoading] = useState(true);
   const [showMethodology, setShowMethodology] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [shareTelemetry, setShareTelemetry] = useState(null);
+
+  const refreshTelemetry = React.useCallback(async () => {
+    try {
+      const t = await api.getShareLink(sessionId);
+      setShareTelemetry(t);
+    } catch {
+      setShareTelemetry(null); // no active share link yet — render nothing
+    }
+  }, [sessionId]);
+
+  useEffect(() => {
+    refreshTelemetry();
+  }, [refreshTelemetry]);
+
+  // When the share dialog closes, refresh telemetry (a new link may have been created)
+  useEffect(() => {
+    if (!shareOpen) refreshTelemetry();
+  }, [shareOpen, refreshTelemetry]);
 
   useEffect(() => {
     (async () => {
@@ -108,6 +127,34 @@ export default function Report() {
           </div>
         }
       />
+
+      {/* Passive executive telemetry — only renders when the briefing has actually circulated */}
+      {shareTelemetry && shareTelemetry.view_count > 0 && (
+        <div className="no-print max-w-5xl mx-auto px-6 md:px-12 pt-3 flex justify-end">
+          <div
+            data-testid="share-telemetry"
+            className="eyebrow text-slate2 inline-flex items-center gap-2"
+          >
+            <span className="w-1 h-1 rounded-full bg-slate2/70" aria-hidden />
+            <span>
+              Viewed <span className="mono-num text-ink">{shareTelemetry.view_count}</span>{" "}
+              {shareTelemetry.view_count === 1 ? "time" : "times"}
+              {shareTelemetry.last_viewed_at && (
+                <>
+                  {" · Last opened "}
+                  <span className="mono-num text-ink">
+                    {new Date(shareTelemetry.last_viewed_at).toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "short",
+                      day: "2-digit",
+                    })}
+                  </span>
+                </>
+              )}
+            </span>
+          </div>
+        </div>
+      )}
 
       <main className="max-w-5xl mx-auto px-6 md:px-12 pt-12 pb-24 print-shell animate-fade-in" data-testid="report-shell">
         {/* Document header */}

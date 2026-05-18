@@ -384,3 +384,71 @@ class TestSharedGet:
     def test_get_shared_404_invalid_token(self, session):
         r = session.get(f"{API}/shared/invalid-token-xyz-not-real", timeout=DEFAULT_TIMEOUT)
         assert r.status_code == 404
+
+
+# ----------------- Share Telemetry (GET /share) -----------------
+class TestShareTelemetry:
+    """Passive GET /api/assessments/{id}/share endpoint — read-only, no side effects."""
+
+    def test_get_share_404_when_no_link_exists(self, session):
+        """Fresh assessment never had a share link created."""
+        a = session.post(f"{API}/assessments", json={}, timeout=DEFAULT_TIMEOUT).json()
+        r = session.get(f"{API}/assessments/{a['id']}/share", timeout=DEFAULT_TIMEOUT)
+        assert r.status_code == 404
+
+    def test_get_share_returns_metadata_shape(self, session, shared_assessment_with_report):
+        aid = shared_assessment_with_report
+        # Ensure link exists
+        session.post(f"{API}/assessments/{aid}/share", json={}, timeout=LLM_TIMEOUT)
+        r = session.get(f"{API}/assessments/{aid}/share", timeout=DEFAULT_TIMEOUT)
+        assert r.status_code == 200, r.text
+        data = r.json()
+        for k in ("id", "token", "assessment_id", "created_at", "expires_at", "view_count", "last_viewed_at"):
+            assert k in data, f"missing key: {k}"
+        assert data["assessment_id"] == aid
+        assert isinstance(data["view_count"], int)
+        # Must NOT include executive_abstract / is_active / revoked_at — minimal payload
+        # (presence allowed, but the spec lists the 7 minimal keys)
+
+    def test_get_share_no_side_effects(self, session, shared_assessment_with_report):
+        """Calling GET /share twice must NOT increment view_count."""
+        aid = shared_assessment_with_report
+        session.post(f"{API}/assessments/{aid}/share", json={}, timeout=LLM_TIMEOUT)
+        r1 = session.get(f"{API}/assessments/{aid}/share", timeout=DEFAULT_TIMEOUT).json()
+        r2 = session.get(f"{API}/assessments/{aid}/share", timeout=DEFAULT_TIMEOUT).json()
+        assert r1["view_count"] == r2["view_count"]
+        assert r1["last_viewed_at"] == r2["last_viewed_at"]
+
+    def test_get_share_reflects_shared_traffic(self, session):
+        """Hit GET /shared/{token} 3 times → telemetry view_count must be >= 3 and last_viewed_at fresh."""
+        from demo_seed import DEMO_INITIATIVE, DEMO_EVIDENCE  # noqa: WPS433
+        from datetime import datetime, timezone, timedelta
+
+        a = session.post(f"{API}/assessments", json={}, timeout=DEFAULT_TIMEOUT).json()
+        aid = a["id"]
+        session.patch(
+            f"{API}/assessments/{aid}",
+            json={"initiative": DEMO_INITIATIVE, "evidence": DEMO_EVIDENCE},
+            timeout=DEFAULT_TIMEOUT,
+        )
+        session.post(f"{API}/assessments/{aid}/report", timeout=LLM_TIMEOUT)
+        cr = session.post(f"{API}/assessments/{aid}/share", json={}, timeout=LLM_TIMEOUT)
+        token = cr.json()["token"]
+
+        # Pre-state via GET /share (no side effects)
+        pre = session.get(f"{API}/assessments/{aid}/share", timeout=DEFAULT_TIMEOUT).json()
+        assert pre["view_count"] == 0
+        assert pre["last_viewed_at"] is None
+
+        # Trigger 3 shared views
+        for _ in range(3):
+            session.get(f"{API}/shared/{token}", timeout=DEFAULT_TIMEOUT)
+
+        post = session.get(f"{API}/assessments/{aid}/share", timeout=DEFAULT_TIMEOUT).json()
+        assert post["view_count"] >= 3, post
+        assert post["last_viewed_at"] is not None
+        # Recent (<5 min)
+        lv = datetime.fromisoformat(post["last_viewed_at"])
+        if lv.tzinfo is None:
+            lv = lv.replace(tzinfo=timezone.utc)
+        assert datetime.now(timezone.utc) - lv < timedelta(minutes=5), post["last_viewed_at"]

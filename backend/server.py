@@ -234,10 +234,6 @@ class ShareCreateRequest(BaseModel):
 
 @api_router.post("/assessments/{assessment_id}/share")
 async def create_share_link(assessment_id: str, payload: ShareCreateRequest = ShareCreateRequest()):
-    """
-    Create (or return existing active) share link for a generated report.
-    Idempotent: returns the existing active link if one exists for this assessment.
-    """
     # Ensure report exists
     report = await db.reports.find_one({"assessment_id": assessment_id}, {"_id": 0})
     if not report:
@@ -274,6 +270,29 @@ async def create_share_link(assessment_id: str, payload: ShareCreateRequest = Sh
     await db.share_links.insert_one(share_doc.copy())
     share_doc.pop("_id", None)
     return share_doc
+
+
+@api_router.get("/assessments/{assessment_id}/share")
+async def get_share_link(assessment_id: str):
+    """
+    Passive read of existing active share link metadata for an assessment.
+    Returns minimal telemetry only — no side effects. 404 if no active link exists.
+    """
+    link = await db.share_links.find_one(
+        {"assessment_id": assessment_id, "is_active": True, "revoked_at": None},
+        {"_id": 0},
+    )
+    if not link:
+        raise HTTPException(status_code=404, detail="No active share link for this assessment")
+    return {
+        "id": link["id"],
+        "token": link["token"],
+        "assessment_id": link["assessment_id"],
+        "created_at": link["created_at"],
+        "expires_at": link.get("expires_at"),
+        "view_count": link.get("view_count", 0),
+        "last_viewed_at": link.get("last_viewed_at"),
+    }
 
 
 @api_router.get("/shared/{token}")
