@@ -35,6 +35,10 @@ The engine produces:
 - The **LLM (Claude Sonnet 4.5) only explains** the pre-computed scores — it never alters numbers, tier, or blocker logic.
 
 ---
+## Live MVP
+
+Preview deployment (MVP):
+<[click here](https://emergence-plan.emergent.host/)>
 
 ## ✦ Tech Stack
 
