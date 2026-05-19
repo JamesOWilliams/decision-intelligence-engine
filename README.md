@@ -38,6 +38,7 @@ to evaluate whether an AI initiative can realistically be executed, absorbed, an
   <img src="https://github.com/JamesOWilliams/decision-intelligence-engine/blob/main/IMG_0436.PNG?raw=true" width="32%" />
 </p>
 ---
+
 ## 1. Vision
 Decision Intelligence Engine (DIE Orbit)
 
