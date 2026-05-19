@@ -10,13 +10,17 @@ to evaluate whether an AI initiative can realistically be executed, absorbed, an
 ## ✦ Product Screenshots
 
 ### Landing Experience
-![Landing Page](./screenshots/landing-desktop.png)
+ <p align="center">
+  <img src="https://github.com/JamesOWilliams/decision-intelligence-engine/blob/main/Landing%20page.JPG?raw=true" width="100%" />
+</p>
 
 ### Assessment Workspace
-![Assessment Workspace](./screenshots/assessment-workspace.png)
+ <p align="center">
+  <img src="https://github.com/JamesOWilliams/decision-intelligence-engine/blob/main/Assessment%20Intake%20form.JPG?raw=true" width="100%" />
+</p>
 
 ### Executive Briefing
-![Executive Briefing](./screenshots/executive-briefing.png)
+
 
 ### Shared Boardroom Briefing
 ![Shared Boardroom](./screenshots/shared-boardroom.png)
