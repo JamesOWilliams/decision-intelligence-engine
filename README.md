@@ -92,32 +92,32 @@ Organizations frequently launch transformation initiatives before operational co
 
 This creates recurring failure patterns:
 
-unclear ownership
-weak governance structures
-fragmented operational alignment
-insufficient change management maturity
-low institutional readiness
-inconsistent stakeholder coordination
-disconnected executive visibility
+- unclear ownership
+- weak governance structures
+- fragmented operational alignment
+- insufficient change management maturity
+- low institutional readiness
+- inconsistent stakeholder coordination
+- disconnected executive visibility
 
 Most readiness assessments fail because they:
 
-rely on subjective interpretation
-lack standardized scoring logic
-produce non-repeatable outcomes
-generate static reports without actionable guidance
-provide little transparency into how conclusions were reached
+- rely on subjective interpretation
+- lack standardized scoring logic
+- produce non-repeatable outcomes
+- generate static reports without actionable guidance
+- provide little transparency into how conclusions were reached
 
 As AI adoption accelerates, this problem becomes more severe.
 
 Enterprises now require systems that can:
 
-evaluate operational maturity consistently
-explain scoring outcomes clearly
-identify organizational risks early
-support governance and compliance expectations
-provide structured remediation pathways
-scale from pilot experimentation to production deployment
+- evaluate operational maturity consistently
+- explain scoring outcomes clearly
+- identify organizational risks early
+- support governance and compliance expectations
+- provide structured remediation pathways
+- scale from pilot experimentation to production deployment
 
 DIE Orbit was created to address this gap.
 
@@ -128,22 +128,22 @@ DIE Orbit is a deterministic decision intelligence platform that evaluates organ
 
 The MVP currently focuses on Organizational Readiness scoring through five core dimensions:
 
-Change Management Maturity
-Executive Alignment
-Data & Governance Readiness
-Operational Enablement
-Risk & Dependency Visibility
+- Change Management Maturity
+- Executive Alignment
+- Data & Governance Readiness
+- Operational Enablement
+- Risk & Dependency Visibility
 
 Users complete a structured intake and assessment workflow that feeds a deterministic scoring engine.
 
 The platform then generates:
 
-weighted readiness scores
-maturity classifications
-risk indicators
-executive briefing summaries
-remediation recommendations
-pilot readiness guidance
+- weighted readiness scores
+- maturity classifications
+- risk indicators
+- executive briefing summaries
+- remediation recommendations
+- pilot readiness guidance
 
 Core platform characteristics include:
 
@@ -159,22 +159,22 @@ Executive-Oriented UX
 
 The interface is designed to resemble enterprise strategy tooling rather than consumer survey software.
 
-Modular Architecture
+### Modular Architecture
 
 The platform separates:
 
-frontend experience
-scoring orchestration
-reasoning services
-future AI augmentation layers
+- frontend experience
+- scoring orchestration
+- reasoning services
+- future AI augmentation layers
 
 This enables future expansion into:
 
-adaptive assessments
-AI-assisted remediation generation
-organizational benchmarking
-longitudinal maturity tracking
-multi-tenant governance workflows
+- adaptive assessments
+- AI-assisted remediation generation
+- organizational benchmarking
+- longitudinal maturity tracking
+- multi-tenant governance workflows
 
 DIE Orbit is designed as both:
 
