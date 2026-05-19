@@ -95,27 +95,33 @@ export default function Report() {
           </>
         }
         right={
-          <div className="flex items-center gap-3 no-print">
+          <div className="flex items-center gap-2 md:gap-3 no-print">
             <button
               onClick={() => navigate(-1)}
               data-testid="report-back-btn"
               className="eyebrow hover:text-ink transition-colors flex items-center gap-1.5"
+              aria-label="Back"
             >
-              <ArrowLeft className="w-3 h-3" /> Back
+              <ArrowLeft className="w-3 h-3" />
+              <span className="hidden sm:inline">Back</span>
             </button>
             <button
               onClick={() => setShareOpen(true)}
               data-testid="share-briefing-btn"
-              className="inline-flex items-center gap-2 border border-ink text-ink px-4 py-2 text-sm font-medium hover:bg-ink hover:text-bone transition-colors"
+              className="inline-flex items-center gap-2 border border-ink text-ink px-3 md:px-4 py-2 text-sm font-medium hover:bg-ink hover:text-bone transition-colors"
+              aria-label="Share Briefing"
             >
-              <Share2 className="w-4 h-4" /> Share Briefing
+              <Share2 className="w-4 h-4" />
+              <span className="hidden sm:inline">Share Briefing</span>
             </button>
             <button
               onClick={() => window.print()}
               data-testid="export-pdf-btn"
-              className="inline-flex items-center gap-2 bg-ink text-bone px-4 py-2 text-sm font-medium hover:bg-graphite transition-colors"
+              className="inline-flex items-center gap-2 bg-ink text-bone px-3 md:px-4 py-2 text-sm font-medium hover:bg-graphite transition-colors"
+              aria-label="Export PDF"
             >
-              <Printer className="w-4 h-4" /> Export PDF
+              <Printer className="w-4 h-4" />
+              <span className="hidden sm:inline">Export PDF</span>
             </button>
           </div>
         }

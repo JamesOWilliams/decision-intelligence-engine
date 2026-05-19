@@ -55,23 +55,28 @@ export function DimensionBar({ name, weight, score, band }) {
   return (
     <div
       data-testid={`dimension-bar-${name.toLowerCase().replace(/\s+/g, "-")}`}
-      className="grid grid-cols-12 items-center gap-4 py-4 border-b border-hairline print-section"
+      className="grid grid-cols-12 gap-x-3 md:gap-x-4 gap-y-3 md:gap-y-0 items-baseline md:items-center py-5 border-b border-hairline print-section"
     >
-      <div className="col-span-12 md:col-span-4">
+      {/* Name + weight — mobile: 8/12, desktop: 4/12 */}
+      <div className="col-span-8 md:col-span-4">
         <div className="font-body text-sm font-medium text-ink">{name}</div>
         <div className="eyebrow mt-1">Weight {Math.round(weight * 100)}%</div>
       </div>
-      <div className="col-span-9 md:col-span-6">
+      {/* Score + band — mobile: 4/12 stacked right; desktop: 2/12 inline right (moves to end via md:order-3) */}
+      <div className="col-span-4 md:col-span-2 md:order-3 flex flex-col md:flex-row items-end md:items-baseline md:justify-end gap-0 md:gap-2 text-right">
+        <span className="mono-num text-2xl text-ink leading-none">{score}</span>
+        <span className="eyebrow text-[9px] md:text-[11px] tracking-[0.12em] md:tracking-[0.14em] mt-1 md:mt-0 break-words">
+          {band}
+        </span>
+      </div>
+      {/* Bar — mobile: full row below; desktop: middle 6/12 */}
+      <div className="col-span-12 md:col-span-6 md:order-2">
         <div className="h-2 bg-hairline relative">
           <div
             className={`h-full ${fillColor} animate-bar-grow`}
             style={{ width: `${score}%`, "--bar-w": `${score}%` }}
           />
         </div>
-      </div>
-      <div className="col-span-3 md:col-span-2 flex items-baseline justify-end gap-2">
-        <span className="mono-num text-2xl text-ink leading-none">{score}</span>
-        <span className="eyebrow">{band}</span>
       </div>
     </div>
   );
