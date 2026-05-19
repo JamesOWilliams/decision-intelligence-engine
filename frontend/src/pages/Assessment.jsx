@@ -109,7 +109,7 @@ export default function Assessment() {
         {/* Left rail: dimension nav */}
         <aside className="col-span-12 md:col-span-3 md:border-r md:border-hairline md:pr-6">
           <div className="eyebrow mb-4">Readiness Dimensions</div>
-          <nav className="flex md:flex-col gap-1" data-testid="dimension-nav">
+          <nav className="grid grid-cols-2 gap-1 md:flex md:flex-col" data-testid="dimension-nav">
             {dimensions.map((d, idx) => {
               const active = idx === activeIdx;
               const dimScore = scoreSnapshot?.dimensions?.find((x) => x.id === d.id)?.score ?? null;
