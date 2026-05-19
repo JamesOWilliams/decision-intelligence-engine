@@ -9,7 +9,7 @@ import os
 import json
 import logging
 import uuid
-from typing import Dict, Any, Optional, Set
+from typing import Dict, Any, List, Optional, Set
 
 from emergentintegrations.llm.chat import LlmChat, UserMessage
 
@@ -125,34 +125,37 @@ def _build_user_message(initiative: Dict[str, Any], scores: Dict[str, Any]) -> s
     )
 
 
-def _fallback_narrative(initiative: Dict[str, Any], scores: Dict[str, Any]) -> Dict[str, Any]:
-    """Deterministic fallback used if LLM call fails — keeps the system functional."""
+def _build_fallback_narrative_text(initiative: Dict[str, Any], scores: Dict[str, Any]) -> str:
     name = initiative.get("name", "This initiative")
     band = scores["maturity_band"]
     tier = scores["recommendation_tier"]
     score = scores["domain_score"]
-
-    narrative = (
+    text = (
         f"{name} demonstrates {band.lower()} organizational readiness with a domain score of "
         f"{score}/100. Based on the operational evidence provided, the system recommends: "
         f"{tier.lower()}. "
     )
     if scores["triggered_blockers"]:
-        narrative += "Operational blockers identified in the evidence base materially constrain the recommendation. "
-    narrative += "Targeted remediation in lower-scoring dimensions is required to advance readiness."
+        text += "Operational blockers identified in the evidence base materially constrain the recommendation. "
+    text += "Targeted remediation in lower-scoring dimensions is required to advance readiness."
+    return text
 
-    strengths = [f"{s['dimension']} scored at {s['score']} ({s['band']})" for s in scores["strengths"][:4]]
-    if not strengths:
-        strengths = ["No dimension reached structured maturity (>=75)."]
 
-    risks = [f"{r['dimension']} scored at {r['score']} ({r['band']})" for r in scores["risks"][:4]]
-    if not risks:
-        risks = ["No dimension fell below the developing threshold (<50)."]
+def _build_fallback_strengths(scores: Dict[str, Any]) -> List[str]:
+    items = [f"{s['dimension']} scored at {s['score']} ({s['band']})" for s in scores["strengths"][:4]]
+    return items or ["No dimension reached structured maturity (>=75)."]
 
-    remediation_actions = []
+
+def _build_fallback_risks(scores: Dict[str, Any]) -> List[str]:
+    items = [f"{r['dimension']} scored at {r['score']} ({r['band']})" for r in scores["risks"][:4]]
+    return items or ["No dimension fell below the developing threshold (<50)."]
+
+
+def _build_fallback_remediations(scores: Dict[str, Any]) -> List[Dict[str, Any]]:
+    actions: List[Dict[str, Any]] = []
     priority = 1
     for b in scores["triggered_blockers"][:3]:
-        remediation_actions.append({
+        actions.append({
             "priority": priority,
             "action": b["remediation"],
             "rationale": b["message"],
@@ -161,24 +164,28 @@ def _fallback_narrative(initiative: Dict[str, Any], scores: Dict[str, Any]) -> D
     for r in scores["risks"][:3]:
         if priority > 5:
             break
-        remediation_actions.append({
+        actions.append({
             "priority": priority,
             "action": f"Address operational gaps in {r['dimension']}.",
             "rationale": f"Dimension scored {r['score']} ({r['band']}) — below the developing threshold.",
         })
         priority += 1
-    if not remediation_actions:
-        remediation_actions = [{
+    if not actions:
+        actions = [{
             "priority": 1,
             "action": "Sustain current operational disciplines and instrument adoption measurement.",
             "rationale": "Readiness is structured; emphasis shifts to measurement and reinforcement.",
         }]
+    return actions
 
+
+def _fallback_narrative(initiative: Dict[str, Any], scores: Dict[str, Any]) -> Dict[str, Any]:
+    """Deterministic fallback used if LLM call fails — composes section builders."""
     return {
-        "narrative": narrative,
-        "strengths": strengths,
-        "risks": risks,
-        "remediation_actions": remediation_actions,
+        "narrative": _build_fallback_narrative_text(initiative, scores),
+        "strengths": _build_fallback_strengths(scores),
+        "risks": _build_fallback_risks(scores),
+        "remediation_actions": _build_fallback_remediations(scores),
     }
 
 

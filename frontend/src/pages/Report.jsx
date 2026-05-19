@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Printer, ArrowLeft, Loader2, Share2 } from "lucide-react";
 import TopNav from "@/components/TopNav";
@@ -12,54 +12,18 @@ import {
   StrengthsRisksSection,
   RemediationSection,
 } from "@/components/report/ReportSections";
-import { api } from "@/lib/api";
-import { log } from "@/lib/logger";
+import { useReport } from "@/hooks/useReport";
+import { useShareTelemetry } from "@/hooks/useShareTelemetry";
 
 export default function Report() {
   const { sessionId } = useParams();
   const navigate = useNavigate();
-  const [report, setReport] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [showMethodology, setShowMethodology] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
-  const [shareTelemetry, setShareTelemetry] = useState(null);
 
-  const refreshTelemetry = React.useCallback(async () => {
-    try {
-      const t = await api.getShareLink(sessionId);
-      setShareTelemetry(t);
-    } catch {
-      setShareTelemetry(null); // no active share link yet — render nothing
-    }
-  }, [sessionId]);
-
-  useEffect(() => {
-    refreshTelemetry();
-  }, [refreshTelemetry]);
-
-  // When the share dialog closes, refresh telemetry (a new link may have been created)
-  useEffect(() => {
-    if (!shareOpen) refreshTelemetry();
-  }, [shareOpen, refreshTelemetry]);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const r = await api.getReport(sessionId);
-        setReport(r);
-      } catch {
-        // Try to generate if missing
-        try {
-          const r = await api.generateReport(sessionId);
-          setReport(r);
-        } catch (e) {
-          log.error(e);
-        }
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [sessionId]);
+  const { report, loading } = useReport(sessionId);
+  // Re-read telemetry whenever the share dialog closes (a new link may have been created)
+  const { telemetry: shareTelemetry } = useShareTelemetry(sessionId, shareOpen ? 1 : 0);
 
   if (loading) {
     return (
