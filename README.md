@@ -6,7 +6,23 @@
 
 **Not** a chatbot. **Not** a generic scoring tool. An *instrument* for enterprise leadership
 to evaluate whether an AI initiative can realistically be executed, absorbed, and sustained.
+---
+## ✦ Product Screenshots
 
+### Landing Experience
+![Landing Page](./screenshots/landing-desktop.png)
+
+### Assessment Workspace
+![Assessment Workspace](./screenshots/assessment-workspace.png)
+
+### Executive Briefing
+![Executive Briefing](./screenshots/executive-briefing.png)
+
+### Shared Boardroom Briefing
+![Shared Boardroom](./screenshots/shared-boardroom.png)
+
+### Mobile Experience
+![Mobile Experience](./screenshots/mobile-view.png)
 ---
 ## 1. Vision
 Decision Intelligence Engine (DIE Orbit)
