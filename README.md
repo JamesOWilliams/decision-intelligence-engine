@@ -20,13 +20,23 @@ to evaluate whether an AI initiative can realistically be executed, absorbed, an
 </p>
 
 ### Executive Briefing
-
+<p align="center">
+  <img src="https://github.com/JamesOWilliams/decision-intelligence-engine/blob/main/executive%20brief%201.JPG?raw=true" width="32%" />
+  <img src="https://github.com/JamesOWilliams/decision-intelligence-engine/blob/main/executive%20brief%202.JPG?raw=true" width="32%" />
+  <img src="https://github.com/JamesOWilliams/decision-intelligence-engine/blob/main/executive%20brief%203.JPG?raw=true" width="32%" />
+</p>
 
 ### Shared Boardroom Briefing
-![Shared Boardroom](./screenshots/shared-boardroom.png)
+<p align="center">
+  <img src="https://github.com/JamesOWilliams/decision-intelligence-engine/blob/main/share%20executive%20brief%20link%20screenshot.JPG?raw=true" width="100%" />
+</p>
 
 ### Mobile Experience
-![Mobile Experience](./screenshots/mobile-view.png)
+<p align="center">
+  <img src="https://github.com/JamesOWilliams/decision-intelligence-engine/blob/main/IMG_0426.PNG?raw=true" width="32%" />
+  <img src="https://github.com/JamesOWilliams/decision-intelligence-engine/blob/main/IMG_0431.PNG?raw=true" width="32%" />
+  <img src="https://github.com/JamesOWilliams/decision-intelligence-engine/blob/main/IMG_0436.PNG?raw=true" width="32%" />
+</p>
 ---
 ## 1. Vision
 Decision Intelligence Engine (DIE Orbit)
