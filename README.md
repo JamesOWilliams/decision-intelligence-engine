@@ -28,7 +28,7 @@ to evaluate whether an AI initiative can realistically be executed, absorbed, an
 
 ### Shared Boardroom Briefing
 <p align="center">
-  <img src="https://github.com/JamesOWilliams/decision-intelligence-engine/blob/main/share%20executive%20brief%20link%20screenshot.JPG?raw=true" width="100%" />
+  <img src="https://github.com/JamesOWilliams/decision-intelligence-engine/blob/main/share%20exec%20brief%202.JPG?raw=true" width="100%" />
 </p>
 
 ### Mobile Experience
