@@ -41,6 +41,10 @@ Deterministic readiness scoring, operational risk interpretation, remediation gu
 </p>
 
 
+## ✦ Product Walkthrough
+
+[Watch the DIE Orbit walkthrough](https://www.loom.com/share/e564a3c8438847bf93d6a3ec7e44cc05)
+
 ## Live MVP
 
 Preview deployment (MVP):
