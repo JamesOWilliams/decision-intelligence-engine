@@ -10,8 +10,8 @@ to evaluate whether an AI initiative can realistically be executed, absorbed, an
 ## ✦ Product Screenshots
 
 ### Landing Experience
- <p align="center">
-  <img src="https://github.com/JamesOWilliams/decision-intelligence-engine/blob/main/Landing%20page.JPG?raw=true" width="100%" />
+ <p align="Left">
+  <img src="https://github.com/JamesOWilliams/decision-intelligence-engine/blob/main/Landing%20page.JPG?raw=true" width="60%" />
 </p>
 
 ### Assessment Workspace
