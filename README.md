@@ -15,8 +15,10 @@ to evaluate whether an AI initiative can realistically be executed, absorbed, an
 </p>
 
 ### Assessment Workspace
- <p align="center">
-  <img src="https://github.com/JamesOWilliams/decision-intelligence-engine/blob/main/Assessment%20Intake%20form.JPG?raw=true" width="100%" />
+Assessment Intake form and Assessment workflow
+ <p align="Left">
+  <img src="https://github.com/JamesOWilliams/decision-intelligence-engine/blob/main/assessment%20workspace%20intake.JPG" width="40%" />
+  <img src="https://github.com/JamesOWilliams/decision-intelligence-engine/blob/main/assessment%20workspace%202.JPG" width="42.8%" />
 </p>
 
 ### Executive Briefing
@@ -29,8 +31,8 @@ Deterministic readiness scoring, operational risk interpretation, remediation gu
 </p>
 
 ### Shared Boardroom Briefing
-<p align="center">
-  <img src="https://github.com/JamesOWilliams/decision-intelligence-engine/blob/main/share%20exec%20brief%202.JPG?raw=true" width="100%" />
+<p align="Left">
+  <img src="https://github.com/JamesOWilliams/decision-intelligence-engine/blob/main/share%20exec%20brief%202.JPG?raw=true" width="50%" />
 </p>
 
 ### Mobile Experience
