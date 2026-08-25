@@ -257,6 +257,186 @@ def _fallback_abstract(initiative: Dict[str, Any], scores: Dict[str, Any]) -> st
     return " ".join(parts)
 
 
+# ===== Comparison Explanation =====
+
+COMPARISON_SYSTEM_PROMPT = """You are an enterprise operational readiness analyst producing a concise change explanation for executive leadership.
+
+You have been given a structured deterministic comparison between two completed readiness assessments for the same initiative.
+
+RESPONSIBILITIES:
+- Summarize meaningful score movement in 2-4 sentences
+- Identify significant maturity transitions observed in the data
+- Describe remediation activity that occurred (without claiming causation)
+- Identify remaining weaknesses from the current assessment's findings
+
+PROHIBITED:
+- Do NOT calculate or recalculate scores
+- Do NOT modify maturity bands or blocker findings
+- Do NOT invent remediation activity not supplied in the data
+- Do NOT claim causation: avoid "This remediation caused...", "Action X produced..."
+- Use neutral language: "Since the prior assessment...", "The reassessment reflects...", "The organization now demonstrates..."
+
+TONE: McKinsey / BCG enterprise advisory voice. Precise, declarative, unhedged. No emoji, no hedging.
+
+OUTPUT FORMAT:
+Respond with a single valid JSON object only:
+{
+  "summary": "2-4 sentence executive summary of what changed",
+  "material_changes": ["string", ...],
+  "remaining_gaps": ["string", ...]
+}
+material_changes: 1-4 observed score or maturity changes (grounded in the data).
+remaining_gaps: 1-4 remaining weaknesses still present in the current assessment.
+"""
+
+
+def _fallback_comparison_explanation(
+    comparison: Dict[str, Any],
+    snap_from: Dict[str, Any],
+    snap_to: Dict[str, Any],
+) -> Dict[str, Any]:
+    overall = comparison["overall"]
+    delta = overall["delta"]
+    transition = overall.get("maturity_transition")
+
+    if delta > 0:
+        summary = (
+            f"The reassessment reflects an improvement of {delta} points, from "
+            f"{overall['previous_score']} ({overall['previous_band']}) to "
+            f"{overall['current_score']} ({overall['current_band']})."
+        )
+    elif delta < 0:
+        summary = (
+            f"The reassessment reflects a decline of {abs(delta)} points, from "
+            f"{overall['previous_score']} ({overall['previous_band']}) to "
+            f"{overall['current_score']} ({overall['current_band']})."
+        )
+    else:
+        summary = (
+            f"The reassessment reflects no net change in overall score "
+            f"({overall['current_score']}, {overall['current_band']})."
+        )
+
+    if transition:
+        summary += f" A maturity transition was observed: {transition}."
+
+    material_changes: List[str] = []
+    if transition:
+        material_changes.append(f"Overall maturity transitioned: {transition}.")
+    for dim in comparison.get("dimensions", []):
+        if abs(dim["delta"]) >= 10:
+            direction = "improved" if dim["delta"] > 0 else "declined"
+            material_changes.append(
+                f"{dim['name']} {direction} by {abs(dim['delta'])} points "
+                f"({dim['previous_band']} → {dim['current_band']})."
+            )
+
+    remaining_gaps: List[str] = []
+    for b in snap_to.get("triggered_blockers", []):
+        remaining_gaps.append(f"Active blocker: {b['label']}.")
+    for r in snap_to.get("risks", [])[:3]:
+        remaining_gaps.append(
+            f"{r['dimension']} remains at risk ({r['score']}, {r['band']})."
+        )
+
+    return {
+        "summary": summary,
+        "material_changes": material_changes or ["No material dimension-level changes identified."],
+        "remaining_gaps": remaining_gaps or ["No significant remaining gaps identified from the current assessment."],
+    }
+
+
+async def generate_comparison_explanation(
+    initiative: Dict[str, Any],
+    comparison: Dict[str, Any],
+    remediation_actions: List[Dict[str, Any]],
+    snap_from: Dict[str, Any],
+    snap_to: Dict[str, Any],
+) -> Dict[str, Any]:
+    """Generate AI explanation of an assessment comparison. Falls back to deterministic template."""
+    payload = {
+        "initiative": {
+            "name": initiative.get("name"),
+            "business_unit": initiative.get("business_unit"),
+        },
+        "previous_assessment": {
+            "score": snap_from["domain_score"],
+            "maturity_band": snap_from["maturity_band"],
+            "recommendation_tier": snap_from.get("recommendation_tier", ""),
+            "dimension_scores": [
+                {"name": d["name"], "score": d["score"], "band": d["band"]}
+                for d in snap_from.get("dimensions", [])
+            ],
+            "triggered_blockers": [
+                {"label": b["label"], "impact": b["impact"]}
+                for b in snap_from.get("triggered_blockers", [])
+            ],
+        },
+        "current_assessment": {
+            "score": snap_to["domain_score"],
+            "maturity_band": snap_to["maturity_band"],
+            "recommendation_tier": snap_to.get("recommendation_tier", ""),
+            "dimension_scores": [
+                {"name": d["name"], "score": d["score"], "band": d["band"]}
+                for d in snap_to.get("dimensions", [])
+            ],
+            "triggered_blockers": [
+                {"label": b["label"], "impact": b["impact"]}
+                for b in snap_to.get("triggered_blockers", [])
+            ],
+        },
+        "deterministic_comparison": {
+            "overall_delta": comparison["overall"]["delta"],
+            "maturity_transition": comparison["overall"].get("maturity_transition"),
+            "tier_transition": comparison["overall"].get("tier_transition"),
+            "dimension_deltas": [
+                {
+                    "name": d["name"],
+                    "delta": d["delta"],
+                    "previous_band": d["previous_band"],
+                    "current_band": d["current_band"],
+                }
+                for d in comparison.get("dimensions", [])
+            ],
+        },
+        "remediation": {
+            "total_actions": len(remediation_actions),
+            "completed_count": sum(1 for a in remediation_actions if a.get("status") == "complete"),
+            "in_progress_count": sum(1 for a in remediation_actions if a.get("status") == "in_progress"),
+            "evidence_provided_count": sum(
+                1 for a in remediation_actions if a.get("evidence_status") == "provided"
+            ),
+            "actions": [
+                {
+                    "description": a.get("description", ""),
+                    "status": a.get("status"),
+                    "evidence_status": a.get("evidence_status"),
+                    "owner": a.get("owner", ""),
+                }
+                for a in remediation_actions[:10]
+            ],
+        },
+    }
+
+    user_text = (
+        "Produce the comparison explanation JSON for the following assessment data.\n\n"
+        f"{json.dumps(payload, indent=2)}\n\n"
+        "Return ONLY the JSON object."
+    )
+
+    try:
+        result = await _call_llm_for_json(
+            session_prefix="die-comparison",
+            system_prompt=COMPARISON_SYSTEM_PROMPT,
+            user_text=user_text,
+            required_keys={"summary", "material_changes", "remaining_gaps"},
+        )
+        return result
+    except Exception as e:
+        logger.exception("Comparison explanation failed; using deterministic fallback. Error: %s", e)
+        return _fallback_comparison_explanation(comparison, snap_from, snap_to)
+
+
 async def generate_executive_abstract(
     initiative: Dict[str, Any],
     scores: Dict[str, Any],

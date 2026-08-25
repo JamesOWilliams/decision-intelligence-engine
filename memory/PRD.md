@@ -1,115 +1,154 @@
-# Decision Intelligence Engine — Organizational Readiness MVP
+# DIE Orbit — Product Requirements Document
 
 ## Original Problem Statement
-Build an enterprise operational assessment system to evaluate whether AI initiatives are organizationally ready to move from experimentation to pilot and production delivery. Evidence-based operational signals, ontology-driven evaluation logic, weighted scoring, blocker logic, confidence scoring, and Claude-generated consultative executive reasoning. NOT a chatbot. An instrument for enterprise leadership.
-
-## Architecture
-- **Frontend**: React (CRA) + Tailwind + lucide-react. Routes: `/` (Landing), `/assessment/:id` (Intake), `/assessment/:id/evidence` (Assessment workspace), `/report/:id` (Executive briefing). Session resume via URL.
-- **Backend**: FastAPI + Motor (MongoDB). All routes prefixed `/api`. Deterministic scoring engine (`scoring_engine.py`) is separate from LLM reasoning (`reasoning_service.py`) — LLM only explains numbers, never alters them.
-- **Ontology**: Versioned JSON at `/app/backend/ontology/organizational_readiness_v1.json` — 5 dimensions, 27 indicators, 5-level maturity scale, weighted dimension config, 5 blocker rules.
-- **LLM**: Claude Sonnet 4.5 (`claude-sonnet-4-5-20250929`) via `emergentintegrations` library + Emergent Universal LLM Key. Deterministic fallback narrative on failure.
-- **Persistence**: MongoDB collections — `assessments`, `reports`.
-
-## User Personas
-- AI Centers of Excellence (CoEs)
-- Product / Digital Product Owners
-- Enterprise Transformation Offices
-- Innovation, Governance & Risk teams
-- Executive stakeholders (briefing audience)
-
-## Core Requirements (Static)
-1. Structured operational evidence intake (NOT self-scoring)
-2. Ontology-driven weighted scoring (0–100)
-3. Confidence calibration (Low / Moderate / High)
-4. Blocker logic that can downgrade recommendation tier independent of score
-5. Consultative LLM-generated executive narrative
-6. Print/PDF-friendly executive briefing
-7. No auth in MVP; session resume via URL
-
-## What's Been Implemented (Jan 2026)
-
-### Pre-Publish Hardening (added Jan 2026)
-- ✅ `.gitignore` hardened: `.env*`, `.ruff_cache/`, `.pytest_cache/`, `test_reports/` excluded
-- ✅ Stray files removed: `/app/test_result.md`, `/app/yarn.lock` (orphan), `/app/tests/` (empty)
-- ✅ `frontend/yarn.lock` will be tracked (520 KB — reproducible installs)
-- ✅ `/api/shared/:token` strips `report.id` and `report.assessment_id` — prevents transit-ID leakage to share recipients
-- ✅ MongoDB indexes created idempotently at startup via `ensure_indexes()`: `assessments.id` (unique), `reports.assessment_id`, `share_links.token` (unique), `share_links.assessment_id + is_active`
-- ✅ Standalone ops script: `backend/scripts/create_indexes.py` for explicit deployment/migration runs
-- ✅ README expanded with: Environment Variables, Security Posture (MVP no-auth caveat), Deployment Notes, Roadmap (Phase 1–4)
-- ✅ 25/25 backend regression suite + zero-warning frontend build verified post-hardening
-
-### Code Quality Pass (added Jan 2026)
-- ✅ Production-aware logger (`/app/frontend/src/lib/logger.js`) — `console.*` only fires in dev builds
-- ✅ All `console.error` calls in Intake/Assessment/Report replaced with `log.error`
-- ✅ All `key={i}` index-as-key usages replaced with stable composite keys
-- ✅ Assessment.jsx `dimensions` wrapped in useMemo (eliminated last react-hooks/exhaustive-deps warning — build now has 0 warnings)
-- ✅ scoring_engine.score_assessment() decomposed into testable helpers (_score_indicator / _score_sub_dimension / _score_dimension / _compute_domain_score / _compute_confidence / _apply_blocker_overrides / _classify_strengths_risks) — bit-identical outputs verified
-- ✅ reasoning_service.py extracted shared `_strip_code_fences()` and `_call_llm_for_json(required_keys=…)` helper — generate_reasoning + generate_executive_abstract both go through it
-- ✅ Report.jsx (374→225 LOC) and SharedBriefing.jsx (307→162 LOC) refactored to share `ReportHeader`, `ScoreHero`, `InitiativeSummary`, `DimensionBreakdownSection`, `BlockersSection`, `StrengthsRisksSection`, `RemediationSection` — ~50% LOC reduction, zero visual or behavioral change
-- ✅ Lint clean: ruff (Python) + ESLint (JS/JSX) both fully green
-- ✅ 25/25 backend regression suite still passing post-refactor
-
-- ✅ Versioned ontology JSON (5 dimensions, 27 evidence indicators, 5 blockers)
-- ✅ Deterministic scoring engine with weighted aggregation, confidence derivation, blocker override logic
-- ✅ Claude Sonnet 4.5 reasoning service with structured JSON output + schema validation + deterministic fallback
-- ✅ FastAPI routes: `/health`, `/ontology`, `/assessments` (CRUD), `/assessments/:id/score`, `/assessments/:id/report`, `/assessments/seed-demo`, `/assessments/demo/current`
-- ✅ Seeded demo: "Enterprise AI Knowledge Assistant Rollout" → score 72 / Structured / Proceed to Constrained Pilot
-- ✅ Landing page (executive hero, briefing sample preview, 3-step process strip, philosophy section)
-- ✅ Intake page (multi-field structured form, segmented Stage control, autosave, sticky right rail timeline)
-- ✅ Assessment workspace (left dimension nav with live dim scores, 5-segment cumulative maturity selectors, right rail Readiness Pulse, progress tracking)
-- ✅ Executive Report (score hero, MaturityBandBadge, ConfidenceChip, RecommendationPill with tier-tone coloring, dimension breakdown bars, blocker callouts, strengths/risks two-column, prioritized remediation list, italic reasoning pull-quote, methodology accordion, browser-print Export PDF with `@media print` stylesheet)
-- ✅ Design system: Bone (#F4F4F0) + Ink (#0A0A0A) + Oxblood (#7F1D1D) accent; Newsreader serif + IBM Plex Sans/Mono pairing; hairline borders, zero shadows, strict left-alignment
-- ✅ data-testid on every interactive + key informational element
-- ✅ Full test coverage — backend pytest suite (21/21) at `/app/backend/tests/test_die_backend.py`, frontend Playwright e2e all-green
-
-### Share Briefing Feature (added Jan 2026)
-- ✅ `POST /api/assessments/:id/share` — generates tokenized read-only link (idempotent; reuses existing active link)
-- ✅ `GET /api/assessments/:id/share` — passive telemetry read; returns minimal metadata + view_count + last_viewed_at; no side effects; 404 if no active link
-- ✅ `GET /api/shared/:token` — public, no-auth retrieval; tracks `view_count` and `last_viewed_at`
-- ✅ Claude-generated boardroom-grade executive abstract (2-4 sentences) cached on share-link record
-- ✅ Forward-compatible expiration architecture (`expires_in_days` request field, `expires_at` persisted; default null in MVP)
-- ✅ Forward-compatible revocation fields (`is_active`, `revoked_at`) ready for future revoke endpoint
-- ✅ ShareBriefingDialog with copy-to-clipboard, view-count display, expiration metadata
-- ✅ Dedicated `/shared/:token` SharedBriefing page — boardroom aesthetic, executive abstract as lead element, NO editing/navigation chrome, "CONFIDENTIAL" eyebrow, Print button, fully print-friendly
-- ✅ Restrained engagement telemetry line on `/report/:id` — "Viewed N times · Last opened DATE" eyebrow-style, no-print, right-aligned, only renders when view_count ≥ 1
-- ✅ Graceful 404 ("Unavailable") for invalid/orphaned tokens
+Build an enterprise operational readiness assessment for AI initiatives with ontology-driven scoring, blocker logic, confidence levels, and an explainable executive report. Architecture must separate deterministic scoring from LLM-generated narrative explainability. Includes: assessment wizard, printable executive report, tokenized Share Briefing view-only capability, passive view-count telemetry, and a closed-loop remediation tracking + reassessment experience. No user authentication required for MVP.
 
 ## Tech Stack
-- Frontend: React 19, Tailwind 3, react-router-dom 7, axios, lucide-react
-- Backend: FastAPI, Motor (async MongoDB), emergentintegrations
-- LLM: Anthropic Claude Sonnet 4.5 via Emergent Universal Key
+- React 19 (Create React App + CRACO), TailwindCSS, IBM Plex fonts, Newsreader serif
+- FastAPI, Motor (async MongoDB)
+- Claude Sonnet 4.5 via Emergent LLM Key (reasoning/narrative only — never scoring)
 
-## Prioritized Backlog
-### P1 (Polish — defer until user feedback)
-- Add Revoke share link endpoint + compound index on `share_links (assessment_id, is_active)` for future-proof idempotency
-- Self-heal stale share-link rows when demo is re-seeded (currently orphans gracefully 404)
-- Surface error toasts in Landing/Intake/Assessment on API failure (currently console-only)
-- Tighten Report.jsx auto-generate fallback — explicit user action instead of auto-trigger on 404
-- Granular per-indicator weighting in ontology (structure ready; UI for editing weights deferred)
-- ShareBriefingDialog: useRef guard to avoid re-fetching on each dialog open (currently idempotent backend masks this)
+## Core Architecture Principle
+> AI augments interpretation. Deterministic systems remain authoritative for readiness scoring.
 
-### P2 (Phase 2 — PRD §22)
-- Additional ontology domains: Strategic Readiness, Data Readiness, Technical Readiness, Governance Readiness, Operational Sustainability
-- Multi-domain weighted roll-up
-- Document ingestion + RAG-retrieved evidence
-- Portfolio dashboard (multi-assessment comparison)
+---
 
-### P3 (Phase 3-4)
-- Workflow orchestration with human approval chains
-- Historical trend tracking + AI initiative portfolio management
-- Enterprise IAM integration
+## What's Been Implemented
 
-## Next Tasks
-- Await user feedback on demo experience
-- Address P1 polish items based on feedback signal
-- Begin Phase 2 ontology expansion (Data Readiness most likely first)
+### Phase 1 — MVP (Complete)
+- **Assessment Wizard** (Intake → Evidence → Report flow)
+- **Deterministic Scoring Engine** (`scoring_engine.py`) — 5 dimensions, weighted, blocker logic, maturity bands
+- **LLM Reasoning Service** (`reasoning_service.py`) — Claude Sonnet 4.5 generates boardroom narrative from pre-calculated scores
+- **Executive Briefing page** (`/report/:sessionId`) — score hero, dimension breakdown, blockers, strengths/risks, remediation actions
+- **Share Briefing** — tokenized read-only URL, passive view-count telemetry
+- **Shared Briefing page** (`/shared/:token`)
+- **Demo seed** — seeded assessment + report
+- **Mobile responsiveness** — TopNav, Dimension Nav, report headers
 
-## Key File Paths
-- Ontology: `/app/backend/ontology/organizational_readiness_v1.json`
-- Scoring: `/app/backend/scoring_engine.py`
-- Reasoning: `/app/backend/reasoning_service.py`
-- Demo seed: `/app/backend/demo_seed.py`
-- Server: `/app/backend/server.py`
-- Frontend pages: `/app/frontend/src/pages/{Landing,Intake,Assessment,Report}.jsx`
-- Design tokens: `/app/design_guidelines.json`, `/app/frontend/tailwind.config.js`, `/app/frontend/src/index.css`
-- Test suite: `/app/backend/tests/test_die_backend.py`
+### Phase 2 — Remediation + Reassessment (Complete — Feb 2026)
+- **Durable Initiative identity** — `initiatives` MongoDB collection; lazy migration for legacy assessments (D-C)
+- **Score snapshot immutability** — `score_snapshot` + `scored_at` frozen on first report generation; never overwritten (INV-001, D-B)
+- **Assessment immutability enforcement** — PATCH returns 409 for completed assessments when evidence/initiative modified (D-E)
+- **Remediation Plans** — `remediation_plans` collection; anchored to deterministic blocker or risk finding (D-A)
+- **Remediation Actions** — `remediation_actions` collection; owner, target date, status, evidence requirement, evidence reference, evidence status
+- **Reassessment** — creates new draft assessment linked to existing initiative (`POST /api/initiatives/:id/reassessment`)
+- **Assessment History** — per-initiative ordered history (`GET /api/initiatives/:id/assessments`)
+- **Deterministic Comparison Service** (`comparison_service.py`) — cross-ontology-version aware, uses frozen snapshots (D-D)
+- **AI Change Explanation** — structured fact input, causal restraint enforced, deterministic fallback (INV-003, INV-004)
+- **New Frontend Pages**: InitiativeOverview, RemediationWorkspace, ComparisonView
+- **Report CTAs**: "Track Remediation" buttons on blockers and risk dimensions
+- **CreateRemediationPlanDialog** — pre-fills finding, routes to workspace
+- **Migration Script** (`scripts/migrate_initiatives.py`) — idempotent batch migration
+
+---
+
+## Collections & Schema
+
+### assessments
+```
+id, ontology_version, initiative (snapshot), evidence, status,
+initiative_id, score_snapshot, scored_at,
+created_at, updated_at, completed_at
+```
+
+### reports
+```
+id, assessment_id, initiative_id, ontology_version, initiative,
+scores, reasoning, generated_at
+```
+
+### share_links
+```
+id, token, assessment_id, report_id, executive_abstract,
+is_active, view_count, last_viewed_at, created_at, expires_at, revoked_at
+```
+
+### initiatives (NEW)
+```
+id, name, business_unit, description, target_workflow,
+expected_outcomes, stage, created_at, updated_at
+```
+
+### remediation_plans (NEW)
+```
+id, initiative_id, source_assessment_id,
+source_finding: { type, ref_id, label, captured_score, captured_band },
+objective, created_at, updated_at
+```
+
+### remediation_actions (NEW)
+```
+id, plan_id, description, owner, target_date,
+status (not_started|in_progress|complete),
+evidence_requirement, evidence_reference,
+evidence_status (not_provided|provided),
+created_at, updated_at
+```
+
+---
+
+## Routes
+
+### Existing
+- `GET /api/health`
+- `GET /api/ontology`
+- `POST /api/assessments`
+- `GET /api/assessments/:id`
+- `PATCH /api/assessments/:id` — 409 if completed + evidence/initiative patch
+- `POST /api/assessments/:id/score`
+- `POST /api/assessments/:id/report` — freezes score_snapshot on first run
+- `GET /api/assessments/:id/report`
+- `POST /api/assessments/seed-demo`
+- `GET /api/assessments/demo/current`
+- `POST /api/assessments/:id/share`
+- `GET /api/assessments/:id/share`
+- `GET /api/shared/:token`
+
+### New (Phase 2)
+- `GET /api/initiatives/:id`
+- `GET /api/initiatives/:id/assessments`
+- `POST /api/initiatives/:id/reassessment`
+- `POST /api/initiatives/:id/remediation-plans`
+- `GET /api/initiatives/:id/remediation-plans`
+- `GET /api/remediation-plans/:id`
+- `POST /api/remediation-plans/:id/actions`
+- `PATCH /api/remediation-actions/:id`
+- `GET /api/initiatives/:id/comparison?from=X&to=Y`
+- `POST /api/initiatives/:id/comparison/explanation`
+
+---
+
+## Frontend Routes
+- `/` — Landing
+- `/assessment/:sessionId` — Intake
+- `/assessment/:sessionId/evidence` — Evidence Assessment
+- `/report/:sessionId` — Executive Briefing
+- `/shared/:token` — Shared Briefing (read-only)
+- `/initiative/:initiativeId` — Initiative Overview (NEW)
+- `/initiative/:initiativeId/remediation/:planId` — Remediation Workspace (NEW)
+- `/initiative/:initiativeId/comparison` — Comparison View (NEW)
+
+---
+
+## Invariants (Must Never Be Violated)
+- **INV-001**: Completed assessment evidence + initiative snapshot are immutable
+- **INV-002**: Readiness scores may only change via deterministic scoring; remediation/LLM cannot alter them
+- **INV-003**: DIE may describe observed changes; may never claim remediation caused score movement
+- **INV-004**: LLM failure must not break comparison, remediation tracking, or reassessment
+
+---
+
+## P0/P1/P2 Backlog
+
+### P0 — Deployment
+- [ ] Fix `.gitignore` to allow `.env` tracking → re-run Deployment Agent
+
+### P1 — Next Sprint
+- [ ] `/api/score/preview` — "what-if" sandbox endpoint for analysts
+- [ ] Authentication + user login (Phase 3)
+
+### P2 — Future
+- [ ] CRA → Vite migration
+- [ ] Clean up unused Shadcn UI components (`/app/frontend/src/components/ui/`)
+- [ ] Report narrative version history (optional audit log)
+- [ ] Split `server.py` into separate route modules as it approaches 800+ lines
