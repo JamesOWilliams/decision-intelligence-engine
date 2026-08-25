@@ -313,42 +313,49 @@ async def get_report(assessment_id: str):
 
 @api_router.post("/assessments/seed-demo")
 async def seed_demo():
-    """Create (or refresh) the seeded demo assessment + report."""
+    """
+    Create or refresh the seeded demo assessment + report.
+    Uses replace_one (upsert) — never destructively deletes existing records.
+    Safe to call repeatedly; idempotent by design.
+    """
     initiative = Initiative(**DEMO_INITIATIVE)
+
+    # Preserve the existing demo id if one already exists (keeps URLs stable)
+    existing = await db.assessments.find_one({"is_demo": True}, {"_id": 0, "id": 1})
+
     doc = _new_assessment_doc(initiative, DEMO_EVIDENCE)
+    if existing:
+        doc["id"] = existing["id"]
     doc["status"] = "completed"
     doc["completed_at"] = _now_iso()
     doc["is_demo"] = True
 
-    # Freeze score snapshot at seed time
     scores = score_assessment(doc["evidence"], ONTOLOGY)
     doc["score_snapshot"] = scores
     doc["scored_at"] = _now_iso()
 
-    # Replace existing demo if present
-    await db.assessments.delete_many({"is_demo": True})
-    await db.assessments.insert_one(doc.copy())
+    # Upsert: replace if exists, insert if not — never deletes any document
+    await db.assessments.replace_one({"is_demo": True}, doc, upsert=True)
 
-    # Ensure a durable initiative exists for the demo
-    doc = await _ensure_initiative_id(doc)
+    fresh_doc = await db.assessments.find_one({"is_demo": True}, {"_id": 0})
+    fresh_doc = await _ensure_initiative_id(fresh_doc)
 
-    # Compute and store report
-    reasoning = await generate_reasoning(doc["initiative"], scores)
+    reasoning = await generate_reasoning(fresh_doc["initiative"], scores)
     report = {
         "id": str(uuid.uuid4()),
-        "assessment_id": doc["id"],
-        "initiative_id": doc.get("initiative_id"),
+        "assessment_id": fresh_doc["id"],
+        "initiative_id": fresh_doc.get("initiative_id"),
         "ontology_version": ONTOLOGY["version"],
-        "initiative": doc["initiative"],
+        "initiative": fresh_doc["initiative"],
         "scores": scores,
         "reasoning": reasoning,
         "generated_at": _now_iso(),
     }
-    await db.reports.delete_many({"assessment_id": doc["id"]})
-    await db.reports.insert_one(report.copy())
+    # Upsert report as well — no delete
+    await db.reports.replace_one({"assessment_id": fresh_doc["id"]}, report, upsert=True)
     report.pop("_id", None)
 
-    return {"assessment_id": doc["id"], "report": report}
+    return {"assessment_id": fresh_doc["id"], "report": report}
 
 
 @api_router.get("/assessments/demo/current")
