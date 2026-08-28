@@ -6,8 +6,240 @@
 
 **Not** a chatbot. **Not** a generic scoring tool. An *instrument* for enterprise leadership
 to evaluate whether an AI initiative can realistically be executed, absorbed, and sustained.
+---
+## ✦ Product Screenshots
+
+### Landing Experience
+ <p align="Left">
+  <img src="https://github.com/JamesOWilliams/decision-intelligence-engine/blob/main/Landing%20page.JPG?raw=true" width="60%" />
+</p>
+
+### Assessment Workspace
+Assessment Intake form and Assessment workflow
+ <p align="Left">
+  <img src="https://github.com/JamesOWilliams/decision-intelligence-engine/blob/main/assessment%20workspace%20intake.JPG" width="40%" />
+  <img src="https://github.com/JamesOWilliams/decision-intelligence-engine/blob/main/assessment%20workspace%202.JPG" width="42.8%" />
+</p>
+
+### Executive Briefing
+
+Deterministic readiness scoring, operational risk interpretation, remediation guidance, and boardroom-style reporting output.
+<p align="center">
+  <img src="https://github.com/JamesOWilliams/decision-intelligence-engine/blob/main/executive%20brief%201.JPG?raw=true" width="32%" />
+  <img src="https://github.com/JamesOWilliams/decision-intelligence-engine/blob/main/executive%20brief%202.JPG?raw=true" width="32%" />
+  <img src="https://github.com/JamesOWilliams/decision-intelligence-engine/blob/main/executive%20brief%203.JPG?raw=true" width="32%" />
+</p>
+
+### Shared Boardroom Briefing
+<p align="Left">
+  <img src="https://github.com/JamesOWilliams/decision-intelligence-engine/blob/main/share%20exec%20brief%202.JPG?raw=true" width="50%" />
+</p>
+
+### Mobile Experience
+<p align="center">
+  <img src="https://github.com/JamesOWilliams/decision-intelligence-engine/blob/main/IMG_0426.PNG?raw=true" width="32%" />
+  <img src="https://github.com/JamesOWilliams/decision-intelligence-engine/blob/main/IMG_0431.PNG?raw=true" width="32%" />
+  <img src="https://github.com/JamesOWilliams/decision-intelligence-engine/blob/main/IMG_0436.PNG?raw=true" width="32%" />
+</p>
+
+
+## ✦ Product Walkthrough
+
+[Watch the DIE Orbit walkthrough](https://www.loom.com/share/e564a3c8438847bf93d6a3ec7e44cc05)
+
+## Live MVP
+
+Preview deployment (MVP):
+[View Live MVP](https://emergence-plan.emergent.host/)
 
 ---
+
+## 1. Vision
+
+# Decision Intelligence Engine (DIE Orbit)
+
+Decision Intelligence Engine (DIE Orbit) is a structured organizational readiness platform designed to help organizations evaluate whether an initiative is operationally prepared for successful execution.
+
+Traditional readiness assessments often rely on:
+- static surveys
+- subjective interpretation
+- disconnected reporting
+- non-repeatable evaluation methods
+
+DIE Orbit introduces a deterministic scoring framework that transforms organizational signals into explainable readiness intelligence.
+
+The platform combines:
+- weighted maturity modeling
+- ontology-driven assessment domains
+- deterministic scoring logic
+- executive-ready reporting
+- structured remediation guidance
+
+The result is a system designed to support:
+- AI transformation initiatives
+- enterprise modernization programs
+- operational change readiness
+- governance evaluation
+- pilot-to-production decision making
+
+DIE Orbit is intentionally architected with a deterministic core first.
+
+Scoring remains:
+- explainable
+- auditable
+- repeatable
+- governance-aligned
+
+before future AI augmentation layers are introduced.
+
+## 2. Problem
+
+Organizations frequently launch transformation initiatives before operational conditions are mature enough to support successful execution.
+
+This creates recurring failure patterns:
+
+- unclear ownership
+- weak governance structures
+- fragmented operational alignment
+- insufficient change management maturity
+- low institutional readiness
+- inconsistent stakeholder coordination
+- disconnected executive visibility
+
+Most readiness assessments fail because they:
+
+- rely on subjective interpretation
+- lack standardized scoring logic
+- produce non-repeatable outcomes
+- generate static reports without actionable guidance
+- provide little transparency into how conclusions were reached
+
+As AI adoption accelerates, this problem becomes more severe.
+
+Enterprises now require systems that can:
+
+- evaluate operational maturity consistently
+- explain scoring outcomes clearly
+- identify organizational risks early
+- support governance and compliance expectations
+- provide structured remediation pathways
+- scale from pilot experimentation to production deployment
+
+DIE Orbit was created to address this gap.
+
+
+## 3. DIE Orbit Solution
+
+DIE Orbit is a deterministic decision intelligence platform that evaluates organizational readiness across weighted operational domains.
+
+The MVP currently focuses on Organizational Readiness scoring through five core dimensions:
+
+- Change Management Maturity
+- Executive Alignment
+- Data & Governance Readiness
+- Operational Enablement
+- Risk & Dependency Visibility
+
+Users complete a structured intake and assessment workflow that feeds a deterministic scoring engine.
+
+The platform then generates:
+
+- weighted readiness scores
+- maturity classifications
+- risk indicators
+- executive briefing summaries
+- remediation recommendations
+- pilot readiness guidance
+
+Core platform characteristics include:
+
+Deterministic Scoring Engine
+
+The scoring system is intentionally rule-based and explainable. Outputs remain consistent for identical inputs, enabling transparency and auditability.
+
+Explainable Decision Outputs
+
+Every readiness classification is traceable to weighted domain scoring rather than opaque AI-generated conclusions.
+
+Executive-Oriented UX
+
+The interface is designed to resemble enterprise strategy tooling rather than consumer survey software.
+
+### Modular Architecture
+
+The platform separates:
+
+- frontend experience
+- scoring orchestration
+- reasoning services
+- future AI augmentation layers
+
+This enables future expansion into:
+
+- adaptive assessments
+- AI-assisted remediation generation
+- organizational benchmarking
+- longitudinal maturity tracking
+- multi-tenant governance workflows
+
+DIE Orbit is designed as both:
+
+a working MVP
+and a foundation for production-grade enterprise decision intelligence systems.
+
+## ✦ Core Capabilities
+
+- Deterministic readiness scoring
+- Weighted ontology domains
+- Executive briefing generation
+- Blocker-aware recommendation engine
+- Confidence calibration
+- Shareable boardroom briefings
+- Responsive enterprise UX
+- Explainable remediation guidance
+- Modular frontend/backend architecture
+
+## 4. Why Traditional Readiness Assessments Fail
+
+Most organizational readiness assessments operate as static questionnaires rather than operational intelligence systems.
+
+As a result, organizations often make transformation decisions using:
+- fragmented operational signals
+- inconsistent scoring approaches
+- subjective interpretation
+- non-repeatable evaluation methods
+
+Traditional assessment models commonly suffer from:
+
+| Traditional Weakness | Operational Impact |
+|---|---|
+| Subjective evaluator interpretation | Inconsistent outcomes |
+| Spreadsheet-driven assessments | Limited scalability |
+| Generic scoring frameworks | Low contextual accuracy |
+| Static reporting outputs | Poor operational alignment |
+| Weak remediation guidance | No actionable next steps |
+| No explainability layer | Low executive trust |
+| One-time assessments | No maturity progression visibility |
+
+These limitations frequently lead to:
+- executive ambiguity
+- governance blind spots
+- stalled transformation programs
+- failed pilot initiatives
+- low stakeholder confidence
+- operational misalignment
+
+DIE Orbit approaches readiness differently.
+
+Instead of treating assessment as a form submission process, the platform treats organizational input as structured operational data that can be:
+- modeled
+- weighted
+- interpreted
+- explained
+- benchmarked
+- operationalized
+
+This creates a more transparent, explainable, and repeatable decision-support system for enterprise transformation initiatives.
 
 ## ✦ What This Is
 
@@ -30,11 +262,123 @@ The engine produces:
 - **Claude-generated consultative executive narrative**
 - **Shareable boardroom briefing** with auto-generated 2–4 sentence executive abstract
 
+## ✦ Explainability Layer
+
+DIE Orbit is designed around explainable operational intelligence.
+
+The platform does not simply return a score.
+
+It provides structured reasoning around:
+- why a readiness classification was assigned
+- which domains contributed most heavily
+- where operational weaknesses exist
+- what remediation actions should occur next
+
+This is critical in enterprise environments where:
+- executive trust matters
+- governance reviews occur
+- operational decisions require justification
+- transformation initiatives carry organizational risk
+
+Rather than presenting readiness as a binary outcome, DIE Orbit surfaces:
+- maturity gradients
+- weighted operational gaps
+- dependency visibility
+- institutional weaknesses
+- remediation priorities
+
+### Example Executive Interpretation
+
+```txt
+Overall Readiness: 72 / Structured
+
+Primary Strengths:
+- Executive sponsorship alignment
+- Governance structure maturity
+
+Primary Risks:
+- Weak operational enablement readiness
+- Limited dependency tracking visibility
+
+Recommendation:
+Proceed to Constrained Pilot with remediation tracking.
+```
+
 ### Critical architectural separation
+
 - The **scoring engine is fully deterministic Python** — no LLM in the scoring path.
 - The **LLM (Claude Sonnet 4.5) only explains** the pre-computed scores — it never alters numbers, tier, or blocker logic.
 
----
+## ✦ Key Engineering Decisions
+
+- Separated deterministic scoring from LLM reasoning
+- Built ontology-driven assessment rendering
+- Used modular React hooks architecture for maintainability
+- Preserved explainability through weighted scoring derivation
+- Implemented read-only tokenized executive briefing sharing
+
+```
+## ✦ System Architecture
+
+```mermaid
+flowchart LR
+    User([Originator])
+    Recipient([Share Recipient])
+
+    subgraph FE[React Frontend]
+      Landing[Landing Experience]
+      Intake[Initiative Intake]
+      Assessment[Assessment Workspace]
+      Report[Executive Briefing]
+      Shared[/Shared Briefing · Read Only/]
+    end
+
+    subgraph BE[FastAPI Backend · /api]
+      
+      subgraph Core[Deterministic Core]
+        Ontology[Ontology Domains]
+        Scoring[Scoring Engine]
+        Explainability[Explainability Layer]
+      end
+
+      subgraph AI[AI Augmentation Layer]
+        Claude[Claude Sonnet 4.5]
+      end
+
+      subgraph Data[Persistence Layer]
+        Mongo[(MongoDB)]
+      end
+
+      Share[Share Link Service]
+      Telemetry[View Telemetry]
+    end
+
+    User --> Landing
+    Landing --> Intake
+    Intake --> Assessment
+    Assessment --> Scoring
+    Ontology --> Scoring
+    Scoring --> Explainability
+    Explainability --> Claude
+    Claude --> Report
+
+    Report --> Share
+    Share --> Shared
+    Recipient --> Shared
+    Shared --> Telemetry
+
+    Assessment --> Mongo
+    Report --> Mongo
+    Share --> Mongo
+
+```
+### Architectural Principles
+
+- Deterministic scoring before AI augmentation
+- Explainability over opaque orchestration
+- Modular separation of scoring, reasoning, and UX
+- Governance-oriented operational design
+- Production-minded frontend/backend decomposition
 
 ## ✦ Tech Stack
 
@@ -47,52 +391,7 @@ The engine produces:
 
 ---
 
-## ✦ Project Structure
 
-```
-/app
-├── backend/
-│   ├── server.py                 # FastAPI app + all /api routes
-│   ├── scoring_engine.py         # Pure deterministic scoring (decomposed helpers)
-│   ├── reasoning_service.py      # Claude Sonnet 4.5 narrative + abstract
-│   ├── demo_seed.py              # Seeded "Enterprise AI Knowledge Assistant Rollout"
-│   ├── ontology/
-│   │   └── organizational_readiness_v1.json
-│   ├── tests/
-│   │   └── test_die_backend.py   # 25 pytest cases (deterministic + LLM + share)
-│   ├── requirements.txt
-│   └── .env                      # MONGO_URL, DB_NAME, CORS_ORIGINS, EMERGENT_LLM_KEY
-├── frontend/
-│   ├── src/
-│   │   ├── App.js                # Routes
-│   │   ├── index.css             # Design tokens + Newsreader + IBM Plex + print CSS
-│   │   ├── lib/
-│   │   │   ├── api.js            # Axios client
-│   │   │   └── logger.js         # Production-aware console wrapper
-│   │   ├── pages/
-│   │   │   ├── Landing.jsx
-│   │   │   ├── Intake.jsx
-│   │   │   ├── Assessment.jsx
-│   │   │   ├── Report.jsx
-│   │   │   └── SharedBriefing.jsx
-│   │   └── components/
-│   │       ├── TopNav.jsx
-│   │       ├── MaturitySelector.jsx
-│   │       ├── ReportPrimitives.jsx     # MaturityBandBadge, ConfidenceChip, ...
-│   │       ├── ShareBriefingDialog.jsx
-│   │       └── report/
-│   │           ├── ReportHeader.jsx
-│   │           ├── ScoreHero.jsx
-│   │           ├── InitiativeSummary.jsx
-│   │           └── ReportSections.jsx   # Dimension / Blockers / Strengths-Risks / Remediation
-│   ├── tailwind.config.js
-│   ├── package.json
-│   └── .env                      # REACT_APP_BACKEND_URL
-├── design_guidelines.json
-├── memory/
-│   └── PRD.md
-└── README.md
-```
 
 ---
 
@@ -238,7 +537,23 @@ The interface is built as a **decision cockpit**, not a SaaS dashboard:
 
 See `design_guidelines.json` for the full token specification.
 
+## Architectural Design Principle
+
+The deterministic engine exists independently from future LLM orchestration.
+
+This separation allows:
+
+stable baseline scoring
+governance validation
+operational consistency
+easier regression testing
+future explainability comparisons against AI-assisted reasoning
+
+This architecture reflects a broader design philosophy:
+
+AI should augment decision systems — not replace deterministic operational foundations.
 ---
+
 
 ## ✦ Environment Variables
 
@@ -350,6 +665,18 @@ created manually via `python backend/scripts/create_indexes.py`:
 - Workflow orchestration with human approval chains
 - Enterprise IAM integration (SSO, role-based access)
 - Briefing revocation + signed link expiration enforcement
+
+
+## ✦ Why This Project Matters
+
+DIE Orbit was designed as an exploration into how deterministic systems, operational governance, and AI-assisted reasoning can coexist within enterprise decision workflows.
+
+The project intentionally prioritizes:
+- explainability over opacity
+- operational trust over novelty
+- modularity over monolithic AI orchestration
+
+This reflects a broader belief that successful enterprise AI systems require governed operational foundations before large-scale automation can be trusted.
 
 ---
 
