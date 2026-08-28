@@ -35,6 +35,10 @@ def _band_for(score: int, bands: List[Dict[str, Any]]) -> str:
     return bands[0]["band"]
 
 
+# Public alias matching the maintainability spec (semantic-named API surface).
+derive_maturity_label = _band_for
+
+
 def _tier_for(score: int, tiers: List[Dict[str, Any]]) -> str:
     for t in tiers:
         if t["min"] <= score <= t["max"]:
@@ -155,10 +159,46 @@ def _score_dimension(
     )
 
 
+# Public aliases matching the maintainability spec (semantic-named API surface).
+calculate_dimension_score = _score_dimension
+
+
+def build_dimension_breakdown(
+    ontology: Dict[str, Any],
+    evidence: Dict[str, str],
+) -> Tuple[List[Dict[str, Any]], List[int], int, int]:
+    """
+    Iterate every dimension in the ontology and produce:
+      - list of dimension_result dicts (with sub-dimensions and indicators)
+      - flat list of raw indicator scores (for confidence calculation)
+      - answered_count, total_count
+    """
+    maturity_scale = ontology["maturity_scale"]
+    bands = ontology["maturity_bands"]
+
+    dimension_results: List[Dict[str, Any]] = []
+    all_indicator_scores: List[int] = []
+    answered_count = 0
+    total_count = 0
+    for dim in ontology["domain"]["dimensions"]:
+        dim_result, dim_raw, dim_answered, dim_total = calculate_dimension_score(
+            dim, evidence, maturity_scale, bands
+        )
+        dimension_results.append(dim_result)
+        all_indicator_scores.extend(dim_raw)
+        answered_count += dim_answered
+        total_count += dim_total
+    return dimension_results, all_indicator_scores, answered_count, total_count
+
+
 # ===== Domain-level computations =====
 
 def _compute_domain_score(dimension_results: List[Dict[str, Any]]) -> int:
     return round(sum(d["score"] * d["weight"] for d in dimension_results))
+
+
+# Public alias.
+aggregate_weighted_score = _compute_domain_score
 
 
 def _compute_confidence(
@@ -175,12 +215,13 @@ def _compute_confidence(
     )
     spread = pstdev(dimension_scores) if len(dimension_scores) > 1 else 0.0
 
+    # Initialize to default so `label` is bound on every code path (silences static analyzers
+    # that don't model exhaustive if/elif/else).
+    label = "Low"
     if completeness >= HIGH_COMPLETENESS and spread < HIGH_SPREAD_MAX and maturity_avg >= HIGH_MATURITY_MIN:
         label = "High"
     elif completeness >= MODERATE_COMPLETENESS:
         label = "Moderate"
-    else:
-        label = "Low"
 
     signals = {
         "completeness": round(completeness, 2),
@@ -250,28 +291,18 @@ def score_assessment(evidence: Dict[str, str], ontology: Dict[str, Any]) -> Dict
     Deterministic ontology-driven scoring. Returns the full ScoreResult dict.
     Behavior is unchanged from v1 — outputs are bit-identical.
     """
-    maturity_scale = ontology["maturity_scale"]
     bands = ontology["maturity_bands"]
     tiers = ontology["recommendation_tiers"]
     tier_rank = ontology["tier_rank"]
 
     # 1. Score every dimension
-    dimension_results: List[Dict[str, Any]] = []
-    all_indicator_scores: List[int] = []
-    answered_count = 0
-    total_count = 0
-    for dim in ontology["domain"]["dimensions"]:
-        dim_result, dim_raw, dim_answered, dim_total = _score_dimension(
-            dim, evidence, maturity_scale, bands
-        )
-        dimension_results.append(dim_result)
-        all_indicator_scores.extend(dim_raw)
-        answered_count += dim_answered
-        total_count += dim_total
+    dimension_results, all_indicator_scores, answered_count, total_count = (
+        build_dimension_breakdown(ontology, evidence)
+    )
 
     # 2. Domain weighted score
-    domain_score = _compute_domain_score(dimension_results)
-    domain_band = _band_for(domain_score, bands)
+    domain_score = aggregate_weighted_score(dimension_results)
+    domain_band = derive_maturity_label(domain_score, bands)
 
     # 3. Confidence
     dim_scores = [d["score"] for d in dimension_results]
@@ -283,7 +314,6 @@ def score_assessment(evidence: Dict[str, str], ontology: Dict[str, Any]) -> Dict
     raw_tier = _tier_for(domain_score, tiers)
     triggered_blockers = evaluate_blockers(evidence, ontology)
     tier = _apply_blocker_overrides(raw_tier, triggered_blockers, tier_rank)
-
     # 5. Strengths / Risks
     strengths, risks = _classify_strengths_risks(dimension_results)
 

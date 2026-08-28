@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { ArrowUpRight } from "lucide-react";
 import TopNav from "@/components/TopNav";
 import { api } from "@/lib/api";
+import { log } from "@/lib/logger";
 
 const STAGES = [
   { id: "discovery", label: "Discovery" },

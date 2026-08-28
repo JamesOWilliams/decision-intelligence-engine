@@ -9,7 +9,7 @@ import os
 import json
 import logging
 import uuid
-from typing import Dict, Any, Optional, Set
+from typing import Dict, Any, List, Optional, Set
 
 from emergentintegrations.llm.chat import LlmChat, UserMessage
 
@@ -125,34 +125,37 @@ def _build_user_message(initiative: Dict[str, Any], scores: Dict[str, Any]) -> s
     )
 
 
-def _fallback_narrative(initiative: Dict[str, Any], scores: Dict[str, Any]) -> Dict[str, Any]:
-    """Deterministic fallback used if LLM call fails — keeps the system functional."""
+def _build_fallback_narrative_text(initiative: Dict[str, Any], scores: Dict[str, Any]) -> str:
     name = initiative.get("name", "This initiative")
     band = scores["maturity_band"]
     tier = scores["recommendation_tier"]
     score = scores["domain_score"]
-
-    narrative = (
+    text = (
         f"{name} demonstrates {band.lower()} organizational readiness with a domain score of "
         f"{score}/100. Based on the operational evidence provided, the system recommends: "
         f"{tier.lower()}. "
     )
     if scores["triggered_blockers"]:
-        narrative += "Operational blockers identified in the evidence base materially constrain the recommendation. "
-    narrative += "Targeted remediation in lower-scoring dimensions is required to advance readiness."
+        text += "Operational blockers identified in the evidence base materially constrain the recommendation. "
+    text += "Targeted remediation in lower-scoring dimensions is required to advance readiness."
+    return text
 
-    strengths = [f"{s['dimension']} scored at {s['score']} ({s['band']})" for s in scores["strengths"][:4]]
-    if not strengths:
-        strengths = ["No dimension reached structured maturity (>=75)."]
 
-    risks = [f"{r['dimension']} scored at {r['score']} ({r['band']})" for r in scores["risks"][:4]]
-    if not risks:
-        risks = ["No dimension fell below the developing threshold (<50)."]
+def _build_fallback_strengths(scores: Dict[str, Any]) -> List[str]:
+    items = [f"{s['dimension']} scored at {s['score']} ({s['band']})" for s in scores["strengths"][:4]]
+    return items or ["No dimension reached structured maturity (>=75)."]
 
-    remediation_actions = []
+
+def _build_fallback_risks(scores: Dict[str, Any]) -> List[str]:
+    items = [f"{r['dimension']} scored at {r['score']} ({r['band']})" for r in scores["risks"][:4]]
+    return items or ["No dimension fell below the developing threshold (<50)."]
+
+
+def _build_fallback_remediations(scores: Dict[str, Any]) -> List[Dict[str, Any]]:
+    actions: List[Dict[str, Any]] = []
     priority = 1
     for b in scores["triggered_blockers"][:3]:
-        remediation_actions.append({
+        actions.append({
             "priority": priority,
             "action": b["remediation"],
             "rationale": b["message"],
@@ -161,24 +164,28 @@ def _fallback_narrative(initiative: Dict[str, Any], scores: Dict[str, Any]) -> D
     for r in scores["risks"][:3]:
         if priority > 5:
             break
-        remediation_actions.append({
+        actions.append({
             "priority": priority,
             "action": f"Address operational gaps in {r['dimension']}.",
             "rationale": f"Dimension scored {r['score']} ({r['band']}) — below the developing threshold.",
         })
         priority += 1
-    if not remediation_actions:
-        remediation_actions = [{
+    if not actions:
+        actions = [{
             "priority": 1,
             "action": "Sustain current operational disciplines and instrument adoption measurement.",
             "rationale": "Readiness is structured; emphasis shifts to measurement and reinforcement.",
         }]
+    return actions
 
+
+def _fallback_narrative(initiative: Dict[str, Any], scores: Dict[str, Any]) -> Dict[str, Any]:
+    """Deterministic fallback used if LLM call fails — composes section builders."""
     return {
-        "narrative": narrative,
-        "strengths": strengths,
-        "risks": risks,
-        "remediation_actions": remediation_actions,
+        "narrative": _build_fallback_narrative_text(initiative, scores),
+        "strengths": _build_fallback_strengths(scores),
+        "risks": _build_fallback_risks(scores),
+        "remediation_actions": _build_fallback_remediations(scores),
     }
 
 
@@ -248,6 +255,186 @@ def _fallback_abstract(initiative: Dict[str, Any], scores: Dict[str, Any]) -> st
         else "Executive sponsorship is required to confirm production readiness gating criteria."
     )
     return " ".join(parts)
+
+
+# ===== Comparison Explanation =====
+
+COMPARISON_SYSTEM_PROMPT = """You are an enterprise operational readiness analyst producing a concise change explanation for executive leadership.
+
+You have been given a structured deterministic comparison between two completed readiness assessments for the same initiative.
+
+RESPONSIBILITIES:
+- Summarize meaningful score movement in 2-4 sentences
+- Identify significant maturity transitions observed in the data
+- Describe remediation activity that occurred (without claiming causation)
+- Identify remaining weaknesses from the current assessment's findings
+
+PROHIBITED:
+- Do NOT calculate or recalculate scores
+- Do NOT modify maturity bands or blocker findings
+- Do NOT invent remediation activity not supplied in the data
+- Do NOT claim causation: avoid "This remediation caused...", "Action X produced..."
+- Use neutral language: "Since the prior assessment...", "The reassessment reflects...", "The organization now demonstrates..."
+
+TONE: McKinsey / BCG enterprise advisory voice. Precise, declarative, unhedged. No emoji, no hedging.
+
+OUTPUT FORMAT:
+Respond with a single valid JSON object only:
+{
+  "summary": "2-4 sentence executive summary of what changed",
+  "material_changes": ["string", ...],
+  "remaining_gaps": ["string", ...]
+}
+material_changes: 1-4 observed score or maturity changes (grounded in the data).
+remaining_gaps: 1-4 remaining weaknesses still present in the current assessment.
+"""
+
+
+def _fallback_comparison_explanation(
+    comparison: Dict[str, Any],
+    snap_from: Dict[str, Any],
+    snap_to: Dict[str, Any],
+) -> Dict[str, Any]:
+    overall = comparison["overall"]
+    delta = overall["delta"]
+    transition = overall.get("maturity_transition")
+
+    if delta > 0:
+        summary = (
+            f"The reassessment reflects an improvement of {delta} points, from "
+            f"{overall['previous_score']} ({overall['previous_band']}) to "
+            f"{overall['current_score']} ({overall['current_band']})."
+        )
+    elif delta < 0:
+        summary = (
+            f"The reassessment reflects a decline of {abs(delta)} points, from "
+            f"{overall['previous_score']} ({overall['previous_band']}) to "
+            f"{overall['current_score']} ({overall['current_band']})."
+        )
+    else:
+        summary = (
+            f"The reassessment reflects no net change in overall score "
+            f"({overall['current_score']}, {overall['current_band']})."
+        )
+
+    if transition:
+        summary += f" A maturity transition was observed: {transition}."
+
+    material_changes: List[str] = []
+    if transition:
+        material_changes.append(f"Overall maturity transitioned: {transition}.")
+    for dim in comparison.get("dimensions", []):
+        if abs(dim["delta"]) >= 10:
+            direction = "improved" if dim["delta"] > 0 else "declined"
+            material_changes.append(
+                f"{dim['name']} {direction} by {abs(dim['delta'])} points "
+                f"({dim['previous_band']} → {dim['current_band']})."
+            )
+
+    remaining_gaps: List[str] = []
+    for b in snap_to.get("triggered_blockers", []):
+        remaining_gaps.append(f"Active blocker: {b['label']}.")
+    for r in snap_to.get("risks", [])[:3]:
+        remaining_gaps.append(
+            f"{r['dimension']} remains at risk ({r['score']}, {r['band']})."
+        )
+
+    return {
+        "summary": summary,
+        "material_changes": material_changes or ["No material dimension-level changes identified."],
+        "remaining_gaps": remaining_gaps or ["No significant remaining gaps identified from the current assessment."],
+    }
+
+
+async def generate_comparison_explanation(
+    initiative: Dict[str, Any],
+    comparison: Dict[str, Any],
+    remediation_actions: List[Dict[str, Any]],
+    snap_from: Dict[str, Any],
+    snap_to: Dict[str, Any],
+) -> Dict[str, Any]:
+    """Generate AI explanation of an assessment comparison. Falls back to deterministic template."""
+    payload = {
+        "initiative": {
+            "name": initiative.get("name"),
+            "business_unit": initiative.get("business_unit"),
+        },
+        "previous_assessment": {
+            "score": snap_from["domain_score"],
+            "maturity_band": snap_from["maturity_band"],
+            "recommendation_tier": snap_from.get("recommendation_tier", ""),
+            "dimension_scores": [
+                {"name": d["name"], "score": d["score"], "band": d["band"]}
+                for d in snap_from.get("dimensions", [])
+            ],
+            "triggered_blockers": [
+                {"label": b["label"], "impact": b["impact"]}
+                for b in snap_from.get("triggered_blockers", [])
+            ],
+        },
+        "current_assessment": {
+            "score": snap_to["domain_score"],
+            "maturity_band": snap_to["maturity_band"],
+            "recommendation_tier": snap_to.get("recommendation_tier", ""),
+            "dimension_scores": [
+                {"name": d["name"], "score": d["score"], "band": d["band"]}
+                for d in snap_to.get("dimensions", [])
+            ],
+            "triggered_blockers": [
+                {"label": b["label"], "impact": b["impact"]}
+                for b in snap_to.get("triggered_blockers", [])
+            ],
+        },
+        "deterministic_comparison": {
+            "overall_delta": comparison["overall"]["delta"],
+            "maturity_transition": comparison["overall"].get("maturity_transition"),
+            "tier_transition": comparison["overall"].get("tier_transition"),
+            "dimension_deltas": [
+                {
+                    "name": d["name"],
+                    "delta": d["delta"],
+                    "previous_band": d["previous_band"],
+                    "current_band": d["current_band"],
+                }
+                for d in comparison.get("dimensions", [])
+            ],
+        },
+        "remediation": {
+            "total_actions": len(remediation_actions),
+            "completed_count": sum(1 for a in remediation_actions if a.get("status") == "complete"),
+            "in_progress_count": sum(1 for a in remediation_actions if a.get("status") == "in_progress"),
+            "evidence_provided_count": sum(
+                1 for a in remediation_actions if a.get("evidence_status") == "provided"
+            ),
+            "actions": [
+                {
+                    "description": a.get("description", ""),
+                    "status": a.get("status"),
+                    "evidence_status": a.get("evidence_status"),
+                    "owner": a.get("owner", ""),
+                }
+                for a in remediation_actions[:10]
+            ],
+        },
+    }
+
+    user_text = (
+        "Produce the comparison explanation JSON for the following assessment data.\n\n"
+        f"{json.dumps(payload, indent=2)}\n\n"
+        "Return ONLY the JSON object."
+    )
+
+    try:
+        result = await _call_llm_for_json(
+            session_prefix="die-comparison",
+            system_prompt=COMPARISON_SYSTEM_PROMPT,
+            user_text=user_text,
+            required_keys={"summary", "material_changes", "remaining_gaps"},
+        )
+        return result
+    except Exception as e:
+        logger.exception("Comparison explanation failed; using deterministic fallback. Error: %s", e)
+        return _fallback_comparison_explanation(comparison, snap_from, snap_to)
 
 
 async def generate_executive_abstract(

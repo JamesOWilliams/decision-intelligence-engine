@@ -1,65 +1,51 @@
-import React, { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { Printer, ArrowLeft, Loader2, Share2 } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { useNavigate, useParams, Link } from "react-router-dom";
+import { Printer, ArrowLeft, Loader2, Share2, LayoutList } from "lucide-react";
 import TopNav from "@/components/TopNav";
 import ShareBriefingDialog from "@/components/ShareBriefingDialog";
+import CreateRemediationPlanDialog from "@/components/CreateRemediationPlanDialog";
 import ReportHeader from "@/components/report/ReportHeader";
 import ScoreHero from "@/components/report/ScoreHero";
 import InitiativeSummary from "@/components/report/InitiativeSummary";
 import {
   DimensionBreakdownSection,
   BlockersSection,
+  DeterministicRisksSection,
   StrengthsRisksSection,
   RemediationSection,
 } from "@/components/report/ReportSections";
+import { useReport } from "@/hooks/useReport";
+import { useShareTelemetry } from "@/hooks/useShareTelemetry";
 import { api } from "@/lib/api";
-import { log } from "@/lib/logger";
 
 export default function Report() {
   const { sessionId } = useParams();
   const navigate = useNavigate();
-  const [report, setReport] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [showMethodology, setShowMethodology] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
-  const [shareTelemetry, setShareTelemetry] = useState(null);
 
-  const refreshTelemetry = React.useCallback(async () => {
-    try {
-      const t = await api.getShareLink(sessionId);
-      setShareTelemetry(t);
-    } catch {
-      setShareTelemetry(null); // no active share link yet — render nothing
-    }
-  }, [sessionId]);
+  // Remediation plan dialog state
+  const [planDialog, setPlanDialog] = useState({ open: false, finding: null, suggested: "" });
 
+  // Durable initiative id (fetched from assessment after report loads)
+  const [initiativeId, setInitiativeId] = useState(null);
+
+  const { report, loading } = useReport(sessionId);
+  const { telemetry: shareTelemetry } = useShareTelemetry(sessionId, shareOpen ? 1 : 0);
+
+  // Fetch assessment to get initiative_id (for remediation CTA navigation)
   useEffect(() => {
-    refreshTelemetry();
-  }, [refreshTelemetry]);
+    if (!report) return;
+    let alive = true;
+    api.getAssessment(sessionId)
+      .then((a) => { if (alive && a.initiative_id) setInitiativeId(a.initiative_id); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [sessionId, report]);
 
-  // When the share dialog closes, refresh telemetry (a new link may have been created)
-  useEffect(() => {
-    if (!shareOpen) refreshTelemetry();
-  }, [shareOpen, refreshTelemetry]);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const r = await api.getReport(sessionId);
-        setReport(r);
-      } catch {
-        // Try to generate if missing
-        try {
-          const r = await api.generateReport(sessionId);
-          setReport(r);
-        } catch (e) {
-          log.error(e);
-        }
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [sessionId]);
+  function openPlanDialog(finding, suggested = "") {
+    setPlanDialog({ open: true, finding, suggested });
+  }
 
   if (loading) {
     return (
@@ -95,33 +81,50 @@ export default function Report() {
           </>
         }
         right={
-          <div className="flex items-center gap-3 no-print">
+          <div className="flex items-center gap-2 md:gap-3 no-print">
+            {initiativeId && (
+              <Link
+                to={`/initiative/${initiativeId}`}
+                data-testid="view-initiative-btn"
+                className="inline-flex items-center gap-2 border border-hairline text-graphite px-3 md:px-4 py-2 text-sm font-medium hover:border-ink hover:text-ink transition-colors"
+                title="Initiative Overview"
+              >
+                <LayoutList className="w-4 h-4" />
+                <span className="hidden sm:inline">Initiative</span>
+              </Link>
+            )}
             <button
               onClick={() => navigate(-1)}
               data-testid="report-back-btn"
               className="eyebrow hover:text-ink transition-colors flex items-center gap-1.5"
+              aria-label="Back"
             >
-              <ArrowLeft className="w-3 h-3" /> Back
+              <ArrowLeft className="w-3 h-3" />
+              <span className="hidden sm:inline">Back</span>
             </button>
             <button
               onClick={() => setShareOpen(true)}
               data-testid="share-briefing-btn"
-              className="inline-flex items-center gap-2 border border-ink text-ink px-4 py-2 text-sm font-medium hover:bg-ink hover:text-bone transition-colors"
+              className="inline-flex items-center gap-2 border border-ink text-ink px-3 md:px-4 py-2 text-sm font-medium hover:bg-ink hover:text-bone transition-colors"
+              aria-label="Share Briefing"
             >
-              <Share2 className="w-4 h-4" /> Share Briefing
+              <Share2 className="w-4 h-4" />
+              <span className="hidden sm:inline">Share Briefing</span>
             </button>
             <button
               onClick={() => window.print()}
               data-testid="export-pdf-btn"
-              className="inline-flex items-center gap-2 bg-ink text-bone px-4 py-2 text-sm font-medium hover:bg-graphite transition-colors"
+              className="inline-flex items-center gap-2 bg-ink text-bone px-3 md:px-4 py-2 text-sm font-medium hover:bg-graphite transition-colors"
+              aria-label="Export PDF"
             >
-              <Printer className="w-4 h-4" /> Export PDF
+              <Printer className="w-4 h-4" />
+              <span className="hidden sm:inline">Export PDF</span>
             </button>
           </div>
         }
       />
 
-      {/* Passive executive telemetry — only renders when the briefing has actually circulated */}
+      {/* Passive executive telemetry */}
       {shareTelemetry && shareTelemetry.view_count > 0 && (
         <div className="no-print max-w-5xl mx-auto px-6 md:px-12 pt-3 flex justify-end">
           <div
@@ -166,7 +169,20 @@ export default function Report() {
 
         <DimensionBreakdownSection dimensions={scores.dimensions} />
 
-        <BlockersSection blockers={scores.triggered_blockers} />
+        <BlockersSection
+          blockers={scores.triggered_blockers}
+          onCreatePlan={initiativeId ? openPlanDialog : null}
+        />
+
+        {/* Deterministic risk dimensions with Track Remediation CTAs */}
+        {initiativeId && (
+          <DeterministicRisksSection
+            dimensions={scores.dimensions}
+            domainScore={scores.domain_score}
+            domainBand={scores.maturity_band}
+            onCreatePlan={openPlanDialog}
+          />
+        )}
 
         <StrengthsRisksSection
           strengths={reasoning?.strengths || []}
@@ -220,6 +236,17 @@ export default function Report() {
         onClose={() => setShareOpen(false)}
         assessmentId={sessionId}
       />
+
+      {initiativeId && (
+        <CreateRemediationPlanDialog
+          open={planDialog.open}
+          onClose={() => setPlanDialog({ open: false, finding: null, suggested: "" })}
+          initiativeId={initiativeId}
+          assessmentId={sessionId}
+          finding={planDialog.finding}
+          suggestedObjective={planDialog.suggested}
+        />
+      )}
     </div>
   );
 }

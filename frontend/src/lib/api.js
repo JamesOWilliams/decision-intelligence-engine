@@ -6,6 +6,7 @@ export const API = `${BACKEND_URL}/api`;
 const client = axios.create({ baseURL: API });
 
 export const api = {
+  // ── Existing assessment endpoints ──
   ontology: () => client.get("/ontology").then((r) => r.data),
   createAssessment: (payload = {}) =>
     client.post("/assessments", payload).then((r) => r.data),
@@ -27,4 +28,39 @@ export const api = {
     client.get(`/assessments/${assessmentId}/share`).then((r) => r.data),
   getShared: (token) =>
     client.get(`/shared/${token}`).then((r) => r.data),
+
+  // ── Initiative endpoints ──
+  getInitiative: (initiativeId) =>
+    client.get(`/initiatives/${initiativeId}`).then((r) => r.data),
+  getInitiativeAssessments: (initiativeId) =>
+    client.get(`/initiatives/${initiativeId}/assessments`).then((r) => r.data),
+  createReassessment: (initiativeId) =>
+    client.post(`/initiatives/${initiativeId}/reassessment`).then((r) => r.data),
+
+  // ── Remediation Plan endpoints ──
+  createRemediationPlan: (initiativeId, body) =>
+    client.post(`/initiatives/${initiativeId}/remediation-plans`, body).then((r) => r.data),
+  getRemediationPlans: (initiativeId) =>
+    client.get(`/initiatives/${initiativeId}/remediation-plans`).then((r) => r.data),
+  getRemediationPlan: (planId) =>
+    client.get(`/remediation-plans/${planId}`).then((r) => r.data),
+
+  // ── Remediation Action endpoints ──
+  createAction: (planId, body) =>
+    client.post(`/remediation-plans/${planId}/actions`, body).then((r) => r.data),
+  updateAction: (actionId, patch) =>
+    client.patch(`/remediation-actions/${actionId}`, patch).then((r) => r.data),
+
+  // ── Comparison endpoints ──
+  getComparison: (initiativeId, fromId, toId) =>
+    client
+      .get(`/initiatives/${initiativeId}/comparison`, { params: { from: fromId, to: toId } })
+      .then((r) => r.data),
+  getComparisonExplanation: (initiativeId, fromAssessmentId, toAssessmentId) =>
+    client
+      .post(`/initiatives/${initiativeId}/comparison/explanation`, {
+        from_assessment_id: fromAssessmentId,
+        to_assessment_id: toAssessmentId,
+      })
+      .then((r) => r.data),
 };

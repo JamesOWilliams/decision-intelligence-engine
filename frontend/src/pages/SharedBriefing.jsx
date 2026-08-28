@@ -131,30 +131,33 @@ function SharedHeader({ sharedAt }) {
   return (
     <header
       data-testid="shared-header"
-      className="no-print h-16 border-b border-ink/90 flex items-center justify-between px-6 md:px-12 bg-bone"
+      className="no-print h-16 border-b border-ink/90 flex items-center justify-between px-4 md:px-12 bg-bone gap-3"
     >
-      <div className="flex items-center gap-3">
-        <div className="mono-num text-[11px] tracking-[0.22em] uppercase text-graphite">
+      <div className="flex items-center gap-3 min-w-0 flex-shrink">
+        <div className="mono-num text-[11px] tracking-[0.22em] uppercase text-graphite whitespace-nowrap">
           DIE
         </div>
-        <span className="text-ink">·</span>
-        <span className="font-heading text-lg text-ink tracking-tight">
-          Shared Executive Briefing
+        <span className="text-ink hidden sm:inline">·</span>
+        <span className="font-heading text-ink tracking-tight truncate">
+          <span className="sm:hidden text-base">Shared Briefing</span>
+          <span className="hidden sm:inline text-lg">Shared Executive Briefing</span>
         </span>
-        <span className="eyebrow ml-3 hidden md:inline">CONFIDENTIAL</span>
+        <span className="eyebrow ml-3 hidden lg:inline whitespace-nowrap">CONFIDENTIAL</span>
       </div>
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3 md:gap-4 flex-shrink-0">
         {sharedAt && (
-          <span className="eyebrow hidden md:inline">
+          <span className="eyebrow hidden md:inline whitespace-nowrap">
             Shared {new Date(sharedAt).toLocaleDateString()}
           </span>
         )}
         <button
           onClick={() => window.print()}
           data-testid="shared-print-btn"
-          className="inline-flex items-center gap-2 bg-ink text-bone px-4 py-2 text-sm font-medium hover:bg-graphite transition-colors"
+          className="inline-flex items-center gap-2 bg-ink text-bone px-3 md:px-4 py-2 text-sm font-medium hover:bg-graphite transition-colors"
+          aria-label="Print"
         >
-          <Printer className="w-4 h-4" /> Print
+          <Printer className="w-4 h-4" />
+          <span className="hidden sm:inline">Print</span>
         </button>
       </div>
     </header>

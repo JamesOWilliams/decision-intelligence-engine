@@ -1,4 +1,5 @@
 import React from "react";
+import { ShieldAlert, TrendingDown } from "lucide-react";
 import { DimensionBar, BlockerCallout } from "@/components/ReportPrimitives";
 
 export function DimensionBreakdownSection({ dimensions }) {
@@ -17,7 +18,7 @@ export function DimensionBreakdownSection({ dimensions }) {
   );
 }
 
-export function BlockersSection({ blockers }) {
+export function BlockersSection({ blockers, onCreatePlan }) {
   if (!blockers?.length) return null;
   return (
     <section className="mt-20 print-section">
@@ -29,7 +30,80 @@ export function BlockersSection({ blockers }) {
       </div>
       <div className="space-y-4">
         {blockers.map((b) => (
-          <BlockerCallout key={b.id} blocker={b} />
+          <div key={b.id} className="relative">
+            <BlockerCallout blocker={b} />
+            {onCreatePlan && (
+              <div className="mt-2 no-print">
+                <button
+                  data-testid={`track-remediation-blocker-${b.id}`}
+                  onClick={() =>
+                    onCreatePlan({
+                      type: "blocker",
+                      ref_id: b.id,
+                      label: b.label,
+                      captured_score: null,
+                      captured_band: null,
+                    })
+                  }
+                  className="inline-flex items-center gap-2 border border-oxblood text-oxblood px-3 py-1.5 text-xs font-medium hover:bg-oxblood hover:text-bone transition-colors"
+                >
+                  <ShieldAlert className="w-3 h-3" />
+                  Track Remediation
+                </button>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/** Deterministic risk dimensions (score < 50) with Remediation CTAs. */
+export function DeterministicRisksSection({ dimensions = [], domainScore, domainBand, onCreatePlan }) {
+  const risks = dimensions.filter((d) => d.score < 50);
+  if (!risks.length) return null;
+  return (
+    <section className="mt-16 print-section" data-testid="deterministic-risks-section">
+      <div className="flex items-baseline justify-between border-b border-ink pb-4 mb-6">
+        <h2 className="display-serif text-2xl">Risk Dimensions</h2>
+        <div className="eyebrow">{risks.length} at risk · score &lt; 50</div>
+      </div>
+      <div className="space-y-4">
+        {risks.map((d) => (
+          <div
+            key={d.id}
+            className="grid grid-cols-12 gap-4 items-center py-4 border-b border-hairline"
+            data-testid={`risk-dimension-${d.id}`}
+          >
+            <div className="col-span-7">
+              <div className="font-body text-sm text-ink leading-snug">{d.name}</div>
+              <div className="eyebrow mt-1 text-graphite">{d.band}</div>
+            </div>
+            <div className="col-span-2 text-right">
+              <span className="mono-num text-2xl text-oxblood">{d.score}</span>
+            </div>
+            {onCreatePlan && (
+              <div className="col-span-3 flex justify-end no-print">
+                <button
+                  data-testid={`track-remediation-risk-${d.id}`}
+                  onClick={() =>
+                    onCreatePlan({
+                      type: "risk",
+                      ref_id: d.id,
+                      label: d.name,
+                      captured_score: domainScore ?? null,
+                      captured_band: domainBand ?? null,
+                    })
+                  }
+                  className="inline-flex items-center gap-2 border border-graphite text-graphite px-3 py-1.5 text-xs font-medium hover:border-ink hover:text-ink transition-colors"
+                >
+                  <TrendingDown className="w-3 h-3" />
+                  Track
+                </button>
+              </div>
+            )}
+          </div>
         ))}
       </div>
     </section>
@@ -107,3 +181,4 @@ export function RemediationSection({ actions = [], testId }) {
     </section>
   );
 }
+

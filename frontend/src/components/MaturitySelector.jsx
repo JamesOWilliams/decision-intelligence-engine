@@ -28,7 +28,7 @@ export default function MaturitySelector({ value, onChange, indicatorId, scale }
             data-testid={`maturity-segment-${indicatorId}-${key}`}
             onClick={() => onChange(key)}
             className={[
-              "border flex flex-col justify-center px-3 transition-colors duration-150 text-left",
+              "border flex flex-col justify-center px-2 md:px-3 transition-colors duration-150 text-left",
               isFilled
                 ? "bg-ink border-ink text-bone"
                 : "bg-surface border-hairline text-graphite hover:bg-sunken hover:border-graphite/40",
@@ -38,7 +38,7 @@ export default function MaturitySelector({ value, onChange, indicatorId, scale }
             <span className="mono-num text-[10px] uppercase tracking-[0.14em] opacity-80">
               {String(meta.score)}
             </span>
-            <span className="mt-1 text-[11px] md:text-xs font-medium leading-tight">
+            <span className="mt-1 text-[9px] md:text-xs font-medium leading-tight tracking-tight md:tracking-normal">
               {meta.label}
             </span>
           </button>
