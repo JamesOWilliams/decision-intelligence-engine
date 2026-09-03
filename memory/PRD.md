@@ -25,7 +25,7 @@ Build an enterprise operational readiness assessment for AI initiatives with ont
 - **Demo seed** — seeded assessment + report
 - **Mobile responsiveness** — TopNav, Dimension Nav, report headers
 
-### Phase 2 — Remediation + Reassessment (Complete — Feb 2026)
+### Phase 2 — Remediation + Reassessment + Decision Records (Complete — Feb 2026)
 - **Durable Initiative identity** — `initiatives` MongoDB collection; lazy migration for legacy assessments (D-C)
 - **Score snapshot immutability** — `score_snapshot` + `scored_at` frozen on first report generation; never overwritten (INV-001, D-B)
 - **Assessment immutability enforcement** — PATCH returns 409 for completed assessments when evidence/initiative modified (D-E)
@@ -39,6 +39,17 @@ Build an enterprise operational readiness assessment for AI initiatives with ont
 - **Report CTAs**: "Track Remediation" buttons on blockers and risk dimensions
 - **CreateRemediationPlanDialog** — pre-fills finding, routes to workspace
 - **Migration Script** (`scripts/migrate_initiatives.py`) — idempotent batch migration
+
+### Phase 2b — Decision Record MVP (Complete — Feb 2026)
+- **Decision Records** (`decision_records` collection) — records human organizational decision against a completed assessment
+- **Deterministic Variance Engine** — maps each of 5 ontology recommendation tiers to its semantically aligned human decision; computes `variance_exists` without any LLM involvement
+- **System Position Snapshot** — frozen from source assessment `score_snapshot` at decision-creation time; immutable thereafter
+- **Atomic Supersession** — new decision record automatically supersedes prior active record; superseded records preserved intact with full content
+- **Decision History** — ordered: active first, then superseded in reverse-chronological order
+- **Backend routes**: `POST /api/initiatives/:id/decision-records`, `GET /api/initiatives/:id/decision-records`, `GET /api/decision-records/:id`
+- **Frontend**: `InitiativeOverview.jsx` Organizational Decision section, `DecisionRecordDialog.jsx` (variance indicator, alignment indicator, all 4 human decisions)
+- **Invariants upheld**: INV-001 (score snapshot immutable), INV-002 (DR creation never alters readiness score), INV-003/004 (no LLM in DR path)
+- **Test coverage**: 20/20 pytest tests (DR-01 through DR-13) all pass
 
 ---
 
@@ -85,9 +96,20 @@ evidence_status (not_provided|provided),
 created_at, updated_at
 ```
 
----
+### decision_records (NEW — Phase 2b)
+```
+id, initiative_id, source_assessment_id,
+system_position_snapshot: { source_assessment_id, ontology_version, domain_score,
+  maturity_band, confidence, recommendation_tier, raw_tier_before_blockers,
+  tier_downgraded, triggered_blockers, captured_at },
+human_decision (Proceed|Proceed with Conditions|Defer|Stop),
+decision_authority, decision_date, rationale, conditions,
+status (active|superseded), supersedes_decision_id,
+variance: { system_recommendation, mapped_system_decision, human_decision, variance_exists },
+created_at
+```
 
-## Routes
+---
 
 ### Existing
 - `GET /api/health`
@@ -115,6 +137,9 @@ created_at, updated_at
 - `PATCH /api/remediation-actions/:id`
 - `GET /api/initiatives/:id/comparison?from=X&to=Y`
 - `POST /api/initiatives/:id/comparison/explanation`
+- `POST /api/initiatives/:id/decision-records` (NEW — Phase 2b)
+- `GET /api/initiatives/:id/decision-records` (NEW — Phase 2b)
+- `GET /api/decision-records/:id` (NEW — Phase 2b)
 
 ---
 
@@ -141,7 +166,7 @@ created_at, updated_at
 ## P0/P1/P2 Backlog
 
 ### P0 — Deployment
-- [ ] Fix `.gitignore` to allow `.env` tracking → re-run Deployment Agent
+- [x] Fix `.gitignore` to allow `.env` tracking → Deployment Agent: PASS
 
 ### P1 — Next Sprint
 - [ ] `/api/score/preview` — "what-if" sandbox endpoint for analysts

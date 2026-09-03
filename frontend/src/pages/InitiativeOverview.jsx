@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Plus, BarChart2, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Plus, BarChart2, Loader2, FileText, CheckCircle, AlertTriangle } from "lucide-react";
 import TopNav from "@/components/TopNav";
 import { MaturityBandBadge, RecommendationPill } from "@/components/ReportPrimitives";
+import DecisionRecordDialog from "@/components/DecisionRecordDialog";
 import { api } from "@/lib/api";
 
 function StatusDot({ status }) {
@@ -157,12 +158,24 @@ export default function InitiativeOverview() {
   const [selected, setSelected] = useState([]);
   const [reassessing, setReassessing] = useState(false);
 
+  // Decision Record state
+  const [drData, setDrData] = useState(null);
+  const [drDialogOpen, setDrDialogOpen] = useState(false);
+
   useEffect(() => {
     let alive = true;
     api.getInitiative(initiativeId)
       .then((d) => { if (alive) setData(d); })
       .catch((e) => { if (alive) setError(e?.response?.data?.detail || "Unable to load initiative."); })
       .finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
+  }, [initiativeId]);
+
+  useEffect(() => {
+    let alive = true;
+    api.getDecisionRecords(initiativeId)
+      .then((d) => { if (alive) setDrData(d); })
+      .catch(() => {});
     return () => { alive = false; };
   }, [initiativeId]);
 
@@ -348,7 +361,155 @@ export default function InitiativeOverview() {
             ))}
           </section>
         )}
+
+        {/* Organizational Decision */}
+        {completed.length > 0 && (
+          <section className="mt-20" data-testid="decision-records-section">
+            <div className="flex items-baseline justify-between border-b border-ink pb-4 mb-6">
+              <h2 className="display-serif text-3xl">Organizational Decision</h2>
+              <button
+                onClick={() => setDrDialogOpen(true)}
+                data-testid="record-decision-btn"
+                className="inline-flex items-center gap-2 border border-ink text-ink px-3 py-1.5 eyebrow hover:bg-ink hover:text-bone transition-colors"
+              >
+                <FileText className="w-3 h-3" />
+                Record Decision
+              </button>
+            </div>
+
+            {/* Active decision */}
+            {drData?.active ? (
+              <div
+                className="border border-ink p-6 mb-6"
+                data-testid="active-decision-record"
+              >
+                <div className="flex items-start justify-between gap-4 flex-wrap">
+                  <div>
+                    <div className="eyebrow text-graphite mb-1">Active Decision</div>
+                    <div className="display-serif text-2xl text-ink">
+                      {drData.active.human_decision}
+                    </div>
+                    <div className="eyebrow mt-2 text-graphite">
+                      {drData.active.decision_authority} · {drData.active.decision_date}
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    {drData.active.variance?.variance_exists === false ? (
+                      <div
+                        className="inline-flex items-center gap-1.5 border border-moss/40 bg-moss/5 text-moss px-3 py-1.5 eyebrow text-[10px]"
+                        data-testid="variance-aligned"
+                      >
+                        <CheckCircle className="w-3 h-3" />
+                        Aligned with system
+                      </div>
+                    ) : drData.active.variance?.variance_exists === true ? (
+                      <div
+                        className="inline-flex items-center gap-1.5 border border-amber2/40 bg-amber2/5 text-amber2 px-3 py-1.5 eyebrow text-[10px]"
+                        data-testid="variance-diverges"
+                      >
+                        <AlertTriangle className="w-3 h-3" />
+                        Diverges from system
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+
+                {/* System position */}
+                <div className="mt-4 pt-4 border-t border-hairline grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div>
+                    <div className="eyebrow text-[9px] mb-1">System Recommendation</div>
+                    <div className="font-body text-xs text-ink">
+                      {drData.active.system_position_snapshot?.recommendation_tier}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="eyebrow text-[9px] mb-1">Score at Decision</div>
+                    <span className="mono-num text-2xl text-graphite">
+                      {drData.active.system_position_snapshot?.domain_score}
+                    </span>
+                  </div>
+                  <div>
+                    <div className="eyebrow text-[9px] mb-1">Maturity Band</div>
+                    <div className="font-body text-xs text-ink">
+                      {drData.active.system_position_snapshot?.maturity_band}
+                    </div>
+                  </div>
+                  {drData.active.rationale && (
+                    <div className="col-span-2 md:col-span-1">
+                      <div className="eyebrow text-[9px] mb-1">Rationale</div>
+                      <p className="font-body text-xs text-graphite leading-snug">
+                        {drData.active.rationale}
+                      </p>
+                    </div>
+                  )}
+                  {drData.active.conditions && drData.active.human_decision === "Proceed with Conditions" && (
+                    <div className="col-span-2 md:col-span-4">
+                      <div className="eyebrow text-[9px] mb-1">Conditions</div>
+                      <p className="font-body text-xs text-graphite leading-snug">
+                        {drData.active.conditions}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="py-6 eyebrow text-slate2" data-testid="no-decision-yet">
+                No decision recorded yet. Record a decision against a completed assessment.
+              </div>
+            )}
+
+            {/* Superseded history */}
+            {drData?.history?.length > 0 && (
+              <div data-testid="superseded-decisions">
+                <div className="eyebrow mb-3 text-graphite">
+                  Prior Decisions ({drData.history.length})
+                </div>
+                {drData.history.map((sr) => (
+                  <div
+                    key={sr.id}
+                    className="py-4 border-b border-hairline grid grid-cols-12 gap-4 items-center"
+                    data-testid={`superseded-record-${sr.id}`}
+                  >
+                    <div className="col-span-8 md:col-span-5">
+                      <div className="font-body text-sm text-graphite line-through">
+                        {sr.human_decision}
+                      </div>
+                      <div className="eyebrow mt-1 text-[9px]">
+                        {sr.decision_authority} · {sr.decision_date}
+                      </div>
+                    </div>
+                    <div className="col-span-4 md:col-span-3">
+                      <span className="mono-num text-xs text-slate2">
+                        {sr.system_position_snapshot?.domain_score} ·{" "}
+                        {sr.system_position_snapshot?.maturity_band}
+                      </span>
+                    </div>
+                    <div className="hidden md:block col-span-4 text-right">
+                      <span className="eyebrow text-[9px] text-slate2 border border-hairline px-2 py-0.5">
+                        superseded
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
       </main>
+
+      {/* Decision Record Dialog */}
+      <DecisionRecordDialog
+        open={drDialogOpen}
+        onClose={() => setDrDialogOpen(false)}
+        onCreated={(record) => {
+          setDrData((prev) => {
+            const history = prev?.active ? [prev.active, ...(prev?.history || [])] : (prev?.history || []);
+            return { active: record, history, total: history.length + 1, initiative_id: initiativeId };
+          });
+        }}
+        initiativeId={initiativeId}
+        completedAssessments={completed}
+      />
     </div>
   );
 }

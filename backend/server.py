@@ -44,6 +44,18 @@ ONTOLOGY_DIMENSION_IDS = {d["id"] for d in ONTOLOGY["domain"]["dimensions"]}
 # Threshold below which a dimension is classified as a risk
 RISK_THRESHOLD = 50
 
+# ── Decision Record — deterministic variance mapping (Section 11) ──
+# Maps every ontology recommendation tier to its semantically aligned human decision.
+# Covers all five tiers in organizational_readiness_v1.json.
+TIER_TO_DECISION_MAP: Dict[str, str] = {
+    "Production Candidate": "Proceed",
+    "Proceed to Constrained Pilot": "Proceed with Conditions",
+    "Remediate Before Expansion": "Defer",
+    "Discovery Only": "Defer",
+    "Not Ready": "Stop",
+}
+HUMAN_DECISIONS = frozenset({"Proceed", "Proceed with Conditions", "Defer", "Stop"})
+
 # ---- App ----
 app = FastAPI(title="Decision Intelligence Engine — Organizational Readiness MVP")
 api_router = APIRouter(prefix="/api")
@@ -115,6 +127,19 @@ class RemediationActionPatch(BaseModel):
 class ComparisonExplanationRequest(BaseModel):
     from_assessment_id: str
     to_assessment_id: str
+
+
+# ── Decision Record models ──
+HumanDecisionT = Literal["Proceed", "Proceed with Conditions", "Defer", "Stop"]
+
+
+class DecisionRecordCreate(BaseModel):
+    source_assessment_id: str
+    human_decision: HumanDecisionT
+    decision_authority: str
+    decision_date: str                    # YYYY-MM-DD
+    rationale: Optional[str] = None
+    conditions: Optional[str] = None
 
 
 # ===== Helpers =====
@@ -788,6 +813,162 @@ async def get_comparison_explanation(
     return {"explanation": explanation, "comparison": comparison}
 
 
+# ── Decision Record helpers ──
+
+def _compute_variance(recommendation_tier: str, human_decision: str) -> Dict[str, Any]:
+    """
+    Deterministic variance report (Section 11).
+    Maps each recommendation tier to its semantically aligned human decision,
+    then reports whether the human decision diverges.
+    INV-003: variance_exists is an observation only — no correctness judgment.
+    """
+    mapped = TIER_TO_DECISION_MAP.get(recommendation_tier)
+    return {
+        "system_recommendation": recommendation_tier,
+        "mapped_system_decision": mapped,
+        "human_decision": human_decision,
+        "variance_exists": (mapped != human_decision) if mapped is not None else None,
+    }
+
+
+def _build_system_position_snapshot(score_snapshot: Dict[str, Any], assessment_id: str) -> Dict[str, Any]:
+    """Extract and freeze the authoritative system position at decision-creation time."""
+    return {
+        "source_assessment_id": assessment_id,
+        "ontology_version": score_snapshot.get("ontology_version", ""),
+        "domain_score": score_snapshot["domain_score"],
+        "maturity_band": score_snapshot["maturity_band"],
+        "confidence": score_snapshot.get("confidence"),
+        "recommendation_tier": score_snapshot["recommendation_tier"],
+        "raw_tier_before_blockers": score_snapshot.get("raw_tier_before_blockers", ""),
+        "tier_downgraded": score_snapshot.get("tier_downgraded", False),
+        "triggered_blockers": score_snapshot.get("triggered_blockers", []),
+        "captured_at": _now_iso(),
+    }
+
+
+# ── Decision Record routes ──
+
+@api_router.post("/initiatives/{initiative_id}/decision-records")
+async def create_decision_record(initiative_id: str, payload: DecisionRecordCreate):
+    """
+    Record a human organizational decision against a completed assessment.
+    Atomically supersedes any prior active Decision Record for this initiative.
+    No LLM calls. D-DR01, D-DR02, D-DR03, D-DR04, INV-001–004.
+    """
+    # Validate initiative
+    initiative = await db.initiatives.find_one({"id": initiative_id}, {"_id": 0})
+    if not initiative:
+        raise HTTPException(status_code=404, detail="Initiative not found.")
+
+    # Validate source assessment belongs to this initiative
+    source = await db.assessments.find_one(
+        {"id": payload.source_assessment_id, "initiative_id": initiative_id},
+        {"_id": 0},
+    )
+    if not source:
+        raise HTTPException(
+            status_code=404,
+            detail="Source assessment not found for this initiative.",
+        )
+
+    # Require completed assessment
+    if source["status"] != "completed":
+        raise HTTPException(
+            status_code=409,
+            detail="Source assessment must be completed before creating a Decision Record.",
+        )
+
+    # Require frozen score snapshot (D-DR01, Section 8)
+    snap = source.get("score_snapshot")
+    if not snap:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "Source assessment does not have a frozen score snapshot. "
+                "Generate the report to freeze the scoring state before recording a decision."
+            ),
+        )
+
+    # Taxonomy enforcement (D-DR02)
+    if payload.human_decision not in HUMAN_DECISIONS:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Invalid human decision '{payload.human_decision}'. "
+                   f"Allowed: {sorted(HUMAN_DECISIONS)}.",
+        )
+
+    system_position = _build_system_position_snapshot(snap, payload.source_assessment_id)
+    variance = _compute_variance(snap["recommendation_tier"], payload.human_decision)
+
+    # D-DR03 / Section 10: supersede any existing active record for this initiative
+    prior = await db.decision_records.find_one(
+        {"initiative_id": initiative_id, "status": "active"},
+        {"_id": 0, "id": 1},
+    )
+
+    new_record = {
+        "id": str(uuid.uuid4()),
+        "initiative_id": initiative_id,
+        "source_assessment_id": payload.source_assessment_id,
+        "system_position_snapshot": system_position,
+        "human_decision": payload.human_decision,
+        "decision_authority": payload.decision_authority,
+        "decision_date": payload.decision_date,
+        "rationale": payload.rationale or "",
+        "conditions": payload.conditions or "",
+        "status": "active",
+        "supersedes_decision_id": prior["id"] if prior else None,
+        "variance": variance,
+        "created_at": _now_iso(),
+    }
+
+    # Atomic supersession: mark prior superseded, insert new record
+    if prior:
+        await db.decision_records.update_one(
+            {"id": prior["id"]},
+            {"$set": {"status": "superseded"}},
+        )
+
+    await db.decision_records.insert_one(new_record.copy())
+    new_record.pop("_id", None)
+    return new_record
+
+
+@api_router.get("/initiatives/{initiative_id}/decision-records")
+async def get_decision_records(initiative_id: str):
+    """
+    Return complete ordered decision history for an initiative.
+    Active record first, then superseded in reverse-chronological order.
+    """
+    initiative = await db.initiatives.find_one({"id": initiative_id}, {"_id": 0})
+    if not initiative:
+        raise HTTPException(status_code=404, detail="Initiative not found.")
+
+    records = await db.decision_records.find(
+        {"initiative_id": initiative_id}, {"_id": 0}
+    ).sort("created_at", -1).to_list(length=200)
+
+    active = [r for r in records if r["status"] == "active"]
+    superseded = [r for r in records if r["status"] == "superseded"]
+
+    return {
+        "initiative_id": initiative_id,
+        "active": active[0] if active else None,
+        "history": superseded,
+        "total": len(records),
+    }
+
+
+@api_router.get("/decision-records/{record_id}")
+async def get_decision_record(record_id: str):
+    """Retrieve a single Decision Record by id."""
+    record = await db.decision_records.find_one({"id": record_id}, {"_id": 0})
+    if not record:
+        raise HTTPException(status_code=404, detail="Decision Record not found.")
+    return record
+
+
 # ---- Mount router & CORS ----
 app.include_router(api_router)
 
@@ -831,6 +1012,15 @@ async def ensure_indexes():
         )
         await db.remediation_actions.create_index(
             "plan_id", name="remediation_actions_plan_id"
+        )
+        # Decision Record indexes
+        await db.decision_records.create_index("id", unique=True, name="decision_records_id_unique")
+        await db.decision_records.create_index(
+            "initiative_id", name="decision_records_initiative_id"
+        )
+        await db.decision_records.create_index(
+            [("initiative_id", 1), ("status", 1)],
+            name="decision_records_initiative_status",
         )
         logger.info("MongoDB indexes verified.")
     except Exception as e:
