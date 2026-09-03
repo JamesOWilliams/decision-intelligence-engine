@@ -63,4 +63,11 @@ export const api = {
         to_assessment_id: toAssessmentId,
       })
       .then((r) => r.data),
+  // ── Decision Record endpoints ──
+  createDecisionRecord: (initiativeId, body) =>
+    client.post(`/initiatives/${initiativeId}/decision-records`, body).then((r) => r.data),
+  getDecisionRecords: (initiativeId) =>
+    client.get(`/initiatives/${initiativeId}/decision-records`).then((r) => r.data),
+  getDecisionRecord: (recordId) =>
+    client.get(`/decision-records/${recordId}`).then((r) => r.data),
 };
